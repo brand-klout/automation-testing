@@ -39,11 +39,18 @@ jobs:
       run: |
         echo "Generating BDD tests for project: ${{ matrix.project }}"
         npm run bdd:gen
-        echo "Generated files:"
-        find .features-gen -name "*.js" -type f
+        echo "Generated files for ${{ matrix.project }}:"
+        if [ -d ".features-gen/${{ matrix.project }}" ]; then
+          find .features-gen/${{ matrix.project }} -name "*.js" -type f || echo "No JS files found"
+        else
+          echo "Directory .features-gen/${{ matrix.project }} not found"
+          find .features-gen -type f || echo "No generated files found"
+        fi
     
     - name: Run Playwright BDD tests
-      run: npx playwright test --project=${{ matrix.project }}
+      run: |
+        echo "Running tests for project: ${{ matrix.project }}"
+        npx playwright test --project=${{ matrix.project }} --reporter=list
       env:
         CI: true
         BASE_URL: https://jsonplaceholder.typicode.com

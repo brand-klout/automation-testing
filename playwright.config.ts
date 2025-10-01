@@ -41,7 +41,7 @@ export default defineConfig({
     {
       ...defineBddProject({
         name: 'ui-tests',
-        features: 'features/**/*.feature',
+        features: 'features/homepage.feature', // Only UI features
         steps: 'tests/steps/**/*.ts',
         outputDir: '.features-gen/ui',
       }),
@@ -57,7 +57,7 @@ export default defineConfig({
     {
       ...defineBddProject({
         name: 'api-tests',
-        features: 'features/**/*.feature',
+        features: 'features/user-management.feature', // Only API features
         steps: 'tests/steps/**/*.ts',
         outputDir: '.features-gen/api',
       }),
