@@ -12,13 +12,10 @@ on:
     branches: [ main, master ]
 
 jobs:
-  test:
-    timeout-minutes: 60
+  api-tests:
+    name: API Tests
+    timeout-minutes: 30
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        project: [api-tests, ui-tests]
     
     steps:
     - uses: actions/checkout@v4
@@ -31,69 +28,141 @@ jobs:
     - name: Install dependencies
       run: npm ci
     
-    - name: Install Playwright Browsers (UI tests only)
-      run: npx playwright install chromium --with-deps
-      if: matrix.project == 'ui-tests'
-    
     - name: Generate BDD tests
       run: |
-        echo "Generating BDD tests for project: ${{ matrix.project }}"
+        echo "Generating BDD tests for API project"
         npm run bdd:gen
-        echo "Generated files for ${{ matrix.project }}:"
-        if [ -d ".features-gen/${{ matrix.project }}" ]; then
-          find .features-gen/${{ matrix.project }} -name "*.js" -type f || echo "No JS files found"
+        echo "Generated files for API tests:"
+        if [ -d ".features-gen/api-tests" ]; then
+          find .features-gen/api-tests -name "*.js" -type f || echo "No JS files found"
         else
-          echo "Directory .features-gen/${{ matrix.project }} not found"
+          echo "Directory .features-gen/api-tests not found"
           find .features-gen -type f || echo "No generated files found"
         fi
     
-    - name: Run Playwright BDD tests
+    - name: Run API Tests
       run: |
-        echo "Running tests for project: ${{ matrix.project }}"
-        npx playwright test --project=${{ matrix.project }} --reporter=list
+        echo "Running API tests"
+        npx playwright test --project=api-tests --reporter=list
       env:
         CI: true
-        BASE_URL: https://jsonplaceholder.typicode.com
         API_BASE_URL: https://jsonplaceholder.typicode.com
     
-    - name: Upload test results
+    - name: Upload API test results
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: playwright-report-${{ matrix.project }}
+        name: api-test-results
         path: |
           playwright-report/
           test-results.xml
         retention-days: 30
         if-no-files-found: warn
     
-    - name: Upload cucumber reports
+    - name: Upload API cucumber reports
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: cucumber-report-${{ matrix.project }}
+        name: api-cucumber-report
         path: cucumber-report/
         retention-days: 30
         if-no-files-found: warn
     
-    - name: Upload traces
+    - name: Upload API traces
       uses: actions/upload-artifact@v4
       if: failure()
       with:
-        name: playwright-traces-${{ matrix.project }}
+        name: api-test-traces
+        path: test-results/
+        retention-days: 30
+
+  ui-tests:
+    name: UI Tests
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    needs: api-tests  # UI tests only run after API tests pass
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Install Playwright Browsers
+      run: npx playwright install chromium --with-deps
+    
+    - name: Generate BDD tests
+      run: |
+        echo "Generating BDD tests for UI project"
+        npm run bdd:gen
+        echo "Generated files for UI tests:"
+        if [ -d ".features-gen/ui-tests" ]; then
+          find .features-gen/ui-tests -name "*.js" -type f || echo "No JS files found"
+        else
+          echo "Directory .features-gen/ui-tests not found"
+          find .features-gen -type f || echo "No generated files found"
+        fi
+    
+    - name: Run UI Tests
+      run: |
+        echo "Running UI tests"
+        npx playwright test --project=ui-tests --reporter=list
+      env:
+        CI: true
+        BASE_URL: https://playwright.dev
+    
+    - name: Upload UI test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: ui-test-results
+        path: |
+          playwright-report/
+          test-results.xml
+        retention-days: 30
+        if-no-files-found: warn
+    
+    - name: Upload UI cucumber reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: ui-cucumber-report
+        path: cucumber-report/
+        retention-days: 30
+        if-no-files-found: warn
+    
+    - name: Upload UI traces
+      uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: ui-test-traces
         path: test-results/
         retention-days: 30
 
   summary:
-    # Create a summary of test results
+    name: Test Summary
     if: always()
-    needs: [test]
+    needs: [api-tests, ui-tests]
     runs-on: ubuntu-latest
     
     steps:
-    - name: Test Summary
+    - name: Test Results Summary
       run: |
         echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
-        echo "- API Tests: ${{ needs.test.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "- UI Tests: ${{ needs.test.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "Check individual job results above for detailed information." >> $GITHUB_STEP_SUMMARY
+        echo "- API Tests: ${{ needs.api-tests.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- UI Tests: ${{ needs.ui-tests.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ needs.api-tests.result }}" = "success" ] && [ "${{ needs.ui-tests.result }}" = "success" ]; then
+          echo "✅ All tests passed successfully!" >> $GITHUB_STEP_SUMMARY
+        elif [ "${{ needs.api-tests.result }}" = "failure" ]; then
+          echo "❌ API tests failed - UI tests were not executed" >> $GITHUB_STEP_SUMMARY
+        elif [ "${{ needs.ui-tests.result }}" = "failure" ]; then
+          echo "❌ UI tests failed - API tests passed" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "⚠️  Some tests were skipped or cancelled" >> $GITHUB_STEP_SUMMARY
+        fi

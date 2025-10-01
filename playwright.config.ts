@@ -41,7 +41,7 @@ export default defineConfig({
     {
       ...defineBddProject({
         name: 'ui-tests',
-        features: 'features/homepage.feature', // Only UI features
+        features: 'features/**/*.feature', // Process all features
         steps: 'tests/steps/**/*.ts',
         outputDir: '.features-gen/ui',
       }),
@@ -50,14 +50,14 @@ export default defineConfig({
         baseURL: process.env.BASE_URL || 'https://playwright.dev',
       },
       testMatch: /.*\.feature\.spec\.js/,
-      grep: /@ui/,
+      grep: /@ui/, // Only run @ui tagged tests
     },
 
     // API Testing Project
     {
       ...defineBddProject({
         name: 'api-tests',
-        features: 'features/user-management.feature', // Only API features
+        features: 'features/**/*.feature', // Process all features
         steps: 'tests/steps/**/*.ts',
         outputDir: '.features-gen/api',
       }),
@@ -68,7 +68,7 @@ export default defineConfig({
         },
       },
       testMatch: /.*\.feature\.spec\.js/,
-      grep: /@api/,
+      grep: /@api/, // Only run @api tagged tests
     },
   ],
 

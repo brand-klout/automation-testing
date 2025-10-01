@@ -1,7 +1,7 @@
-Feature: User Management API
+Feature: User Management
   As a system administrator
-  I want to manage users through API
-  So that I can perform CRUD operations
+  I want to manage users through both API and UI
+  So that I can perform operations through different interfaces
 
   @api
   Scenario: Get user list via API
@@ -15,3 +15,14 @@ Feature: User Management API
     When I send a POST request to "/users" with the user data
     Then the response status should be 201
     And the response should contain the user ID
+
+  @ui
+  Scenario: Visit homepage
+    Given I am on the homepage
+    Then I should see the "Get started" button
+
+  @ui
+  Scenario: Display main navigation elements
+    Given I am on the homepage
+    Then I should see the "Get started" button
+    And I should see the "Docs" link

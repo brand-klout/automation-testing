@@ -55,8 +55,7 @@ playwright-demo/
 │   ├── api/               # API-specific generated tests
 │   └── ui/                # UI-specific generated tests
 ├── features/               # Gherkin feature files
-│   ├── homepage.feature    # UI test scenarios (@ui)
-│   └── user-management.feature # API test scenarios (@api)
+│   └── user-management.feature # Mixed @api and @ui test scenarios
 ├── tests/
 │   ├── pages/             # Page Object Model
 │   │   └── HomePage.ts
@@ -68,28 +67,45 @@ playwright-demo/
 └── package.json
 ```
 
-**Note**: Each test project (api-tests, ui-tests) processes only its relevant feature files to ensure complete separation and avoid fixture conflicts.
+**Key Features**: 
+- **Mixed Test Tags**: Same feature file contains both @api and @ui tests
+- **Tag-based Filtering**: Each project uses `grep` to run only relevant tests
+- **Sequential Execution**: CI runs API tests first, then UI tests (only if API passes)
 
 ## Test Examples
 
-### API Tests (@api)
+### Mixed API and UI Tests in Same Feature
 
 ```gherkin
-@api
-Scenario: Get user list via API
-  When I send a GET request to "/users"
-  Then the response status should be 200
-  And the response should be an array
-```
+# features/user-management.feature
+Feature: User Management
+  As a system administrator
+  I want to manage users through both API and UI
+  So that I can perform operations through different interfaces
 
-### UI Tests (@ui)
+  @api
+  Scenario: Get user list via API
+    When I send a GET request to "/users"
+    Then the response status should be 200
+    And the response should be an array
 
-```gherkin
-@ui  
-Scenario: Display main navigation elements
-  Given I am on the homepage
-  Then I should see the "Get started" button
-  And I should see the "Docs" link
+  @api
+  Scenario: Create user via API
+    Given I have a new user with email "test@example.com"
+    When I send a POST request to "/users" with the user data
+    Then the response status should be 201
+    And the response should contain the user ID
+
+  @ui
+  Scenario: Visit homepage
+    Given I am on the homepage
+    Then I should see the "Get started" button
+
+  @ui
+  Scenario: Display main navigation elements
+    Given I am on the homepage
+    Then I should see the "Get started" button
+    And I should see the "Docs" link
 ```
 
 ## Available Scripts
@@ -120,38 +136,63 @@ Scenario: Display main navigation elements
 
 ## Configuration
 
-The project is configured with two independent test projects:
+The project is configured with two independent test projects that process the same feature files:
 
-- **api-tests**: Runs tests with `@api` tags, using JSONPlaceholder API
-- **ui-tests**: Runs tests with `@ui` tags, using Chrome browser
+- **api-tests**: Processes all feature files but only runs tests with `@api` tags
+- **ui-tests**: Processes all feature files but only runs tests with `@ui` tags
 
-Tags provide precise control over which type of tests to run, achieving complete separation between API and UI testing.
+This approach allows you to write mixed test scenarios in a single feature file while maintaining complete separation during execution.
+
+### Execution Flow
+
+**Local Development**: Both project types can run in parallel
+```bash
+npm run test:api  # Runs only @api tests
+npm run test:ui   # Runs only @ui tests
+npm run bdd       # Runs both (all tests)
+```
+
+**CI/CD (GitHub Actions)**: Sequential execution for reliability
+1. 🔍 **API Tests** run first (fast, no browser needed)
+2. ✅ If API tests pass → 🎨 **UI Tests** run next
+3. ❌ If API tests fail → UI tests are skipped
 
 ## Testing Patterns
 
 ### BDD Feature Files
 
-Write human-readable test scenarios using Gherkin syntax:
+Write human-readable test scenarios using Gherkin syntax with mixed tags:
 
 ```gherkin
-# features/api-tests.feature
-Feature: API Testing
-  As a system user
-  I want to interact with JSONPlaceholder API
-  So that I can manage posts
+# features/user-management.feature
+Feature: User Management
+  As a system administrator
+  I want to manage users through both API and UI
+  So that I can perform operations through different interfaces
 
   @api
-  Scenario: Get all posts
+  Scenario: Get all posts from API
     When I send a GET request to "/posts"
     Then the response status should be 200
     And the response should contain a list of posts
 
   @api
-  Scenario: Create a new post
+  Scenario: Create a new post via API
     Given I have a new post with title "My Test Post"
     When I send a POST request to "/posts" with the post data
     Then the response status should be 201
     And the response should contain the created post
+
+  @ui
+  Scenario: Navigate homepage elements
+    Given I am on the homepage
+    Then I should see the "Get started" button
+    And I should see the "Docs" link
+
+  @ui
+  Scenario: Verify page accessibility
+    Given I am on the homepage
+    Then I should see the "Get started" button
 ```
 
 ### Step Definitions
@@ -250,9 +291,10 @@ open cucumber-report/index.html
 ```
 
 #### CI/CD Integration
-- **GitHub Actions**: Automated test matrix
-- **Test Artifacts**: Screenshots and trace files saved on failures
-- **Parallel Execution**: Supports test sharding for improved speed
+- **GitHub Actions**: Sequential test execution (API → UI)
+- **Smart Execution**: UI tests only run if API tests pass
+- **Test Artifacts**: Separate reports for API and UI test results
+- **Failure Isolation**: Clear identification of which test type failed
 
 ### Debugging
 
