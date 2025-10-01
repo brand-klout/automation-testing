@@ -10,3 +10,7 @@ Feature: Homepage Navigation
   Scenario: Display main navigation elements
     Then I should see the "Get started" button
     And I should see the "Docs" link
+
+  @ui
+  Scenario: Visit homepage successfully
+    Then I should see the "Get started" button

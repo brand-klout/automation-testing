@@ -15,8 +15,3 @@ Feature: User Management API
     When I send a POST request to "/users" with the user data
     Then the response status should be 201
     And the response should contain the user ID
-
-  @ui
-  Scenario: Visit homepage
-    Given I am on the homepage
-    Then I should see the "Get started" button
