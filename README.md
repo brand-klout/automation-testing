@@ -52,9 +52,11 @@ npm run report
 ```
 playwright-demo/
 ├── .features-gen/          # Auto-generated BDD test files
+│   ├── api/               # API-specific generated tests
+│   └── ui/                # UI-specific generated tests
 ├── features/               # Gherkin feature files
-│   ├── homepage.feature    # UI test scenarios
-│   └── user-management.feature # API test scenarios
+│   ├── homepage.feature    # UI test scenarios (@ui)
+│   └── user-management.feature # API test scenarios (@api)
 ├── tests/
 │   ├── pages/             # Page Object Model
 │   │   └── HomePage.ts
@@ -65,6 +67,8 @@ playwright-demo/
 ├── playwright.config.ts   # Playwright configuration
 └── package.json
 ```
+
+**Note**: Each test project (api-tests, ui-tests) processes only its relevant feature files to ensure complete separation and avoid fixture conflicts.
 
 ## Test Examples
 
