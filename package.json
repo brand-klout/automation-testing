@@ -1,0 +1,38 @@
+{
+  "name": "playwright-demo",
+  "version": "1.0.0",
+  "description": "Playwright E2E testing demo for web applications",
+  "scripts": {
+    "test": "playwright test",
+    "test:api": "playwright test --project=api-tests",
+    "test:ui": "playwright test --project=ui-tests",
+    "bdd": "bddgen && playwright test",
+    "bdd:gen": "bddgen",
+    "bdd:api": "bddgen && playwright test --project=api-tests",
+    "bdd:ui": "bddgen && playwright test --project=ui-tests",
+    "bdd:debug": "bddgen && playwright test --debug",
+    "bdd:headed": "bddgen && playwright test --headed",
+    "report": "playwright show-report",
+    "trace": "playwright show-trace",
+    "install-browsers": "playwright install"
+  },
+  "keywords": [
+    "playwright",
+    "e2e",
+    "testing",
+    "automation",
+    "web"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "@types/node": "^20.0.0",
+    "playwright-bdd": "^7.0.0",
+    "typescript": "^5.0.0"
+  },
+  "optionalDependencies": {
+    "axe-playwright": "^1.2.3",
+    "allure-playwright": "^2.10.0"
+  }
+}

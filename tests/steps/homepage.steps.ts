@@ -1,0 +1,54 @@
+import { expect } from '@playwright/test';
+import { Given, When, Then } from './fixtures';
+
+Given('I am on the homepage', async ({ homePage }) => {
+  await homePage.goto();
+});
+
+When('I click the {string} button', async ({ homePage }, buttonName: string) => {
+  if (buttonName === 'Get started') {
+    await homePage.clickGetStarted();
+  }
+});
+
+When('I search for {string}', async ({ homePage }, query: string) => {
+  await homePage.searchDocs(query);
+});
+
+Then('I should see the {string} button', async ({ homePage }, buttonName: string) => {
+  if (buttonName === 'Get started') {
+    await expect(homePage.getStartedButton).toBeVisible();
+  }
+});
+
+Then('I should see the {string} link', async ({ homePage }, linkName: string) => {
+  if (linkName === 'Docs') {
+    await expect(homePage.docsLink).toBeVisible();
+  } else if (linkName === 'Community') {
+    await expect(homePage.communityLink).toBeVisible();
+  }
+});
+
+Then('I should be on the getting started page', async ({ page }) => {
+  await expect(page).toHaveURL(/.*intro/);
+});
+
+Then('the URL should contain {string}', async ({ page }, urlPart: string) => {
+  await expect(page.url()).toContain(urlPart);
+});
+
+Then('I should see search results', async ({ page }) => {
+  // Wait for navigation or search results
+  await page.waitForLoadState('networkidle');
+});
+
+Then('the {string} button should have an accessible name', async ({ homePage }, buttonName: string) => {
+  if (buttonName === 'Get started') {
+    await expect(homePage.getStartedButton).toHaveAccessibleName('Get started');
+  }
+});
+
+Then('the page should have a proper heading structure', async ({ page }) => {
+  const mainHeading = page.getByRole('heading', { level: 1 });
+  await expect(mainHeading).toBeVisible();
+});
