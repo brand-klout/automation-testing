@@ -13,9 +13,14 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   /* Opt out of parallel tests on CI. */
   workers: process.env.CI ? 1 : undefined,
+  /* Timeout per test */
+  timeout: 30000,
+  /* Global test timeout */
+  globalTimeout: process.env.CI ? 10 * 60 * 1000 : undefined, // 10 minutes on CI
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
     ['html'],
+    ['junit', { outputFile: 'test-results.xml' }],
     cucumberReporter('html', { outputFile: 'cucumber-report/report.html' }),
   ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
