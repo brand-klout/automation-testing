@@ -54,11 +54,8 @@ playwright-demo/
 ├── .features-gen/              # Auto-generated BDD JS tests
 │   ├── api/                    # Generated from features/api
 │   └── ui/                     # Generated from features/ui
-├── features/
-│   ├── api/                    # API feature files (pure @api)
-│   │   └── user-management-api.feature
-│   └── ui/                     # UI feature files (pure @ui)
-│       └── user-management-ui.feature
+├── features/                   # All Gherkin feature files (mixed @api / @ui per scenario)
+│   └── user-management.feature
 ├── tests/
 │   ├── pages/                  # Page Object Models
 │   │   └── HomePage.ts
@@ -72,57 +69,52 @@ playwright-demo/
 └── package.json
 ```
 
-**Structure Rationale**:
-- Prevents accidental cross‑layer coupling (no API steps inside UI scenarios and vice versa)
-- Faster generation: each project only scans its own feature set
-- Clear ownership for teams (API vs UI)
-- Easier review diffs (no unrelated domain churn in one file)
+**Structure Rationale (Unified)**:
+- Single source for related business capabilities
+- Scenario-level tags decide execution project(s)
+- Optionally a scenario can have both `@api @ui` tags (classification only; keep steps domain-appropriate)
+- Minimal duplication; easier discoverability
 
 ## Test Examples
 
-### Example: API Feature (pure)
+### Example: Unified Feature File
 
 ```gherkin
-# features/api/user-management-api.feature
-Feature: User Management API
-  As a system administrator
-  I want to manage users via the public API
-  So that backend operations are validated
+# features/user-management.feature
+Feature: User Management
+  As a platform and system user
+  I want to validate backend (API) and frontend (UI) capabilities
+  So that I am confident both layers function correctly
 
   @api
-  Scenario: Get user list
+  Scenario: Get user list via API
     When I send a GET request to "/users"
     Then the response status should be 200
     And the response should be an array
 
   @api
-  Scenario: Create user
+  Scenario: Create user via API
     Given I have a new user with email "test@example.com"
     When I send a POST request to "/users" with the user data
     Then the response status should be 201
     And the response should contain the user ID
-```
-
-### Example: UI Feature (pure)
-
-```gherkin
-# features/ui/user-management-ui.feature
-Feature: User Management UI
-  As a platform user
-  I want to access the homepage
-  So that I can navigate using primary entry points
-
-  Background:
-    Given I am on the homepage
 
   @ui
   Scenario: Visit homepage
+    Given I am on the homepage
     Then I should see the "Get started" button
 
   @ui
   Scenario: Display main navigation elements
+    Given I am on the homepage
     Then I should see the "Get started" button
     And I should see the "Docs" link
+
+  # Classification-only dual tagging example (keeps UI steps only):
+  # @ui @api
+  # Scenario: Shared classification demo
+  #   Given I am on the homepage
+  #   Then I should see the "Get started" button
 ```
 
 ## Available Scripts
@@ -140,13 +132,13 @@ Feature: User Management UI
 
 ### Add API Tests
 
-1. Create/modify files under `features/api/` (each scenario tagged `@api`)
-2. Implement steps in `tests/steps/api/` (reuse shared fixtures via `../fixtures`)
+1. Add/modify scenarios in any feature under `features/` with `@api`
+2. Implement (or reuse) steps in `tests/steps/api/`
 3. Run `npm run test:api`
 
 ### Add UI Tests
 
-1. Create/modify files under `features/ui/` (each scenario tagged `@ui`)
+1. Add/modify scenarios in any feature under `features/` with `@ui`
 2. Create/extend Page Objects in `tests/pages/`
 3. Implement steps in `tests/steps/ui/`
 4. Run `npm run test:ui`
@@ -302,14 +294,14 @@ npx playwright show-trace test-results/example-test/trace.zip
 
 ### How to add new API tests?
 
-1. Add feature under `features/api/` with `@api`
+1. Tag scenario with `@api`
 2. Add/modify steps in `tests/steps/api/`
 3. `npm run bdd:gen`
 4. `npm run test:api`
 
 ### How to add new UI tests?
 
-1. Add feature under `features/ui/` with `@ui`
+1. Tag scenario with `@ui`
 2. Add/extend page objects in `tests/pages/`
 3. Add/modify steps in `tests/steps/ui/`
 4. `npm run bdd:gen`

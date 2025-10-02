@@ -1,8 +1,9 @@
 Feature: User Management
-  As a system administrator
-  I want to manage users through both API and UI
-  So that I can perform operations through different interfaces
+  As a platform and system user
+  I want to validate backend (API) and frontend (UI) capabilities
+  So that I am confident both layers function correctly
 
+  # API Scenarios (@api)
   @api
   Scenario: Get user list via API
     When I send a GET request to "/users"
@@ -16,6 +17,7 @@ Feature: User Management
     Then the response status should be 201
     And the response should contain the user ID
 
+  # UI Scenarios (@ui)
   @ui
   Scenario: Visit homepage
     Given I am on the homepage
@@ -27,12 +29,9 @@ Feature: User Management
     Then I should see the "Get started" button
     And I should see the "Docs" link
 
-  @ui
-  Scenario: Cross-check API created user appears after UI navigation (demo mix)
-    # API read existing users (shared data fetch)
-    When I send a GET request to "/users"
-    Then the response status should be 200
-    And the response should be an array
-    # UI verify homepage still accessible after API operation
-    Given I am on the homepage
-    Then I should see the "Get started" button
+  # (Optional pattern) A scenario could carry both tags if logically valid:
+  # @api @ui
+  # Scenario: Example combined classification (not mixing steps, just classification)
+  #   Given I am on the homepage
+  #   Then I should see the "Get started" buttonFeature: User Management
+    #   Then I should see the "Get started" button

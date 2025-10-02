@@ -40,10 +40,11 @@ export default defineConfig({
     {
       ...defineBddProject({
         name: 'ui-tests',
-        features: 'features/ui/**/*.feature', // Only UI feature files
+  features: 'features/*.feature', // Unified feature directory (root-level only)
         steps: [
           'tests/steps/fixtures.ts',      // shared fixtures & test instance
-          'tests/steps/ui/**/*.ts',       // UI step definitions
+          'tests/steps/ui/**/*.ts',       // UI steps
+          'tests/steps/api/**/*.ts',      // API steps (ignored at runtime via grep)
         ],
         outputDir: '.features-gen/ui',
       }),
@@ -59,10 +60,11 @@ export default defineConfig({
     {
       ...defineBddProject({
         name: 'api-tests',
-        features: 'features/api/**/*.feature', // Only API feature files
+  features: 'features/*.feature', // Unified feature directory (root-level only)
         steps: [
           'tests/steps/fixtures.ts',     // shared fixtures & test instance
           'tests/steps/api/**/*.ts',     // API step definitions
+          'tests/steps/ui/**/*.ts',      // UI steps (ignored at runtime via grep)
         ],
         outputDir: '.features-gen/api',
       }),
