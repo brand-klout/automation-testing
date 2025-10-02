@@ -124,6 +124,7 @@ Feature: User Management
 | `npm run bdd:gen` | Generate BDD test files |
 | `npm run test:api` | Run API tests |
 | `npm run test:ui` | Run UI tests |
+| `npm run test:dual` | Run scenarios tagged with both @api and @ui (classification overlap) |
 | `npm run bdd` | Generate and run all tests |
 | `npm run bdd:debug` | Run in debug mode |
 | `npm run report` | View test reports |
@@ -158,6 +159,7 @@ CI still runs API first then UI. Locally you can run them independently or toget
 ```bash
 npm run test:api   # API only (@api)
 npm run test:ui    # UI only (@ui)
+npm run test:dual  # Only dual-tag (@api @ui) scenarios (classification overlap)
 npm run bdd        # Generate + run both
 ```
 
@@ -289,6 +291,24 @@ npx playwright show-trace test-results/example-test/trace.zip
 4. **Proper Waits**: Use Playwright's auto-waiting features instead of manual timeouts
 5. **Cleanup**: Ensure proper browser context cleanup between tests
 6. **Tag Organization**: Use appropriate tags to organize different types of tests
+7. **Dual Tagging**: Only apply both `@api @ui` when the scenario's steps are logically UI-only or API-only but you want shared classification (avoid mixing API calls and UI actions in a single scenario)
+
+### Dual-Tag Strategy Guidelines
+
+| Guideline | Rationale |
+|-----------|-----------|
+| Keep steps domain-pure | Prevents brittle cross-layer dependencies |
+| Avoid API+UI operational mixing | Separation keeps retries predictable |
+| Use dual tags for reporting or grouping only | Clarifies intent without coupling |
+| Consider future split if steps diverge | Easier to scale maintenance |
+
+Example dual-tag scenario (classification only):
+```gherkin
+@api @ui
+Scenario: Classification only: homepage visibility (dual-tag)
+  Given I am on the homepage
+  Then I should see the "Get started" button
+```
 
 ## Adding New Tests
 

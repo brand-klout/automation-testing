@@ -45,6 +45,7 @@ export default defineConfig({
           'tests/steps/fixtures.ts',      // shared fixtures & test instance
           'tests/steps/ui/**/*.ts',       // UI steps
           'tests/steps/api/**/*.ts',      // API steps (ignored at runtime via grep)
+          'tests/steps/common/**/*.ts',   // Common neutral steps
         ],
         outputDir: '.features-gen/ui',
       }),
@@ -65,6 +66,7 @@ export default defineConfig({
           'tests/steps/fixtures.ts',     // shared fixtures & test instance
           'tests/steps/api/**/*.ts',     // API step definitions
           'tests/steps/ui/**/*.ts',      // UI steps (ignored at runtime via grep)
+          'tests/steps/common/**/*.ts',  // Common neutral steps
         ],
         outputDir: '.features-gen/api',
       }),

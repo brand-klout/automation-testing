@@ -31,7 +31,13 @@ Feature: User Management
 
   # (Optional pattern) A scenario could carry both tags if logically valid:
   # @api @ui
-  # Scenario: Example combined classification (not mixing steps, just classification)
-  #   Given I am on the homepage
-  #   Then I should see the "Get started" buttonFeature: User Management
+    # (Optional) Dual-tag classification example (no cross-layer step mixing)
+    # @api @ui
+    # Scenario: Example classification-only
+    #   Given I am on the homepage
     #   Then I should see the "Get started" button
+
+    @api @ui
+    Scenario: Classification only: homepage visibility (dual-tag)
+      Given I am on the homepage
+      Then I should see the "Get started" button
