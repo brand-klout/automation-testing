@@ -1,15 +1,23 @@
 name: Playwright Tests
 
+# Expanded permissions to allow GitHub Pages deployment for Allure static site
 permissions:
   contents: read
   actions: read
   checks: write
+  pages: write      # needed for pages deployment
+  id-token: write   # required by actions/deploy-pages for OIDC
 
 on:
   push:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
+
+# Concurrency to avoid overlapping deployments of Pages site
+concurrency:
+  group: pages
+  cancel-in-progress: false
 
 jobs:
   api-tests:
@@ -152,3 +160,75 @@ jobs:
         else
           echo "⚠️  Some tests were skipped or cancelled" >> $GITHUB_STEP_SUMMARY
         fi
+
+  publish-allure:
+    name: Publish Allure Static Report
+    if: always()
+    needs: [api-tests, ui-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository (for potential metadata)
+        uses: actions/checkout@v4
+
+      - name: Download API Allure results
+        uses: actions/download-artifact@v4
+        with:
+          name: api-allure-results
+          path: merged-allure/api
+        if: always()
+
+      - name: Download UI Allure results
+        uses: actions/download-artifact@v4
+        with:
+          name: ui-allure-results
+          path: merged-allure/ui
+        if: always()
+
+      - name: Merge Allure results
+        run: |
+          set -euo pipefail
+          mkdir -p allure-results
+          echo "Merging Allure results from API and UI runs"
+          # Copy API results first
+          if [ -d merged-allure/api ]; then
+            cp -R merged-allure/api/. allure-results/
+          fi
+          # Copy UI results (may overwrite history files but that's acceptable for single-run merge)
+            
+          if [ -d merged-allure/ui ]; then
+            cp -R merged-allure/ui/. allure-results/
+          fi
+          echo "Counts:" 
+          echo " API result files: $(ls -1 merged-allure/api 2>/dev/null | wc -l || true)"
+          echo " UI  result files: $(ls -1 merged-allure/ui 2>/dev/null | wc -l || true)"
+          echo " Combined files: $(ls -1 allure-results 2>/dev/null | wc -l || true)"
+
+      - name: Install Node (for allure commandline dependency)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Allure CLI
+        run: |
+          npm install --no-save allure-commandline@latest
+
+      - name: Generate Allure static site
+        run: |
+          npx allure generate allure-results --clean -o allure-report
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: allure-report
+        if: always()
+
+  deploy-allure:
+    name: Deploy Allure to GitHub Pages
+    # Only attempt deployment on push events to default branches; still show if tests failed for visibility
+    if: github.event_name == 'push'
+    needs: publish-allure
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
