@@ -1,6 +1,8 @@
 # Playwright BDD Demo
 
-A Playwright + BDD demo project with unified feature directory, scenario tag filtering (`@api` / `@ui` / dual-tag), and Allure reporting.
+[![Allure Report](https://img.shields.io/badge/Allure-Report-blueviolet?logo=allure&logoColor=white)](https://aimer1124.github.io/playwright-demo/)
+
+A Playwright + BDD demo project with unified feature directory, scenario tag filtering (`@api` / `@ui` / dual-tag), and Allure reporting (published via GitHub Pages).
 
 ## Features
 
