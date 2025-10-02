@@ -1,11 +1,11 @@
 # Playwright BDD Demo
 
-A Playwright + BDD demo project with **clean separation** between API and UI feature domains.
+A Playwright + BDD demo project with unified feature directory, scenario tag filtering (`@api` / `@ui` / dual-tag), and Allure reporting.
 
 ## Features
 
 - 🎯 **Pure BDD Mode**: Test structure based on Gherkin feature files
-- 🔄 **API ↔ UI Separation**: Distinct feature/step folders (`features/api`, `features/ui`)
+- 🔄 **Tag-based Separation**: Single feature directory; execution split by tags
 - 🏷️ **Tag-driven Execution**: `@api` and `@ui` filtering per Playwright project
 - 🌐 **Minimal, Focused Configuration**
 
@@ -43,8 +43,11 @@ npm run bdd:debug
 # Headed mode
 npm run bdd:headed
 
-# View reports
+# View Playwright HTML report
 npm run report
+
+# Generate Allure report
+npm run allure:generate && npm run allure:open
 ```
 
 ## Project Structure
@@ -69,7 +72,7 @@ playwright-demo/
 └── package.json
 ```
 
-**Structure Rationale (Unified)**:
+**Structure Rationale (Unified + Allure)**:
 - Single source for related business capabilities
 - Scenario-level tags decide execution project(s)
 - Optionally a scenario can have both `@api @ui` tags (classification only; keep steps domain-appropriate)
@@ -255,20 +258,24 @@ Tests run across multiple browsers and devices:
 
 ### Test Reports
 
-#### Local Development
-After running tests, view the HTML report:
-```bash
-npm run report
+| Reporter | Use Case | Pros | Notes |
+|----------|----------|------|-------|
+| Playwright HTML | Local & CI failure triage | Built-in, trace/video links | Short-lived artifacts |
+| Allure | Team dashboards, trends, tag matrix | Historical retention, flaky analysis, classification via tags | Requires generate step |
 
-# View Cucumber reports
-open cucumber-report/index.html
+#### Local Development
+```bash
+# HTML
+npm run report
+# Allure
+npm run allure:generate && npm run allure:open
 ```
 
 #### CI/CD Integration
-- **GitHub Actions**: Sequential test execution (API → UI)
-- **Smart Execution**: UI tests only run if API tests pass
-- **Test Artifacts**: Separate reports for API and UI test results
-- **Failure Isolation**: Clear identification of which test type failed
+1. Run tests (produces `playwright-report/` + `allure-results/`).
+2. Upload `allure-results` + HTML report as artifacts.
+3. (Optional) Generate static Allure report (`npm run allure:generate`) and publish.
+4. Keep sequential order: API → UI → (optional dual-tag).
 
 ### Debugging
 
@@ -309,6 +316,22 @@ Scenario: Classification only: homepage visibility (dual-tag)
   Given I am on the homepage
   Then I should see the "Get started" button
 ```
+
+## Allure vs (Removed) Cucumber Reporter
+
+We removed the previous Cucumber HTML reporter in favor of Allure because:
+1. Allure aggregates history (trends, flaky stats) while Cucumber output is static per run.
+2. Tag dimensions (`@api`, `@ui`, dual) automatically appear as suites in Allure.
+3. Reduced end-of-run processing issues (no more pickle sync errors).
+4. Easier CI artifact workflow (raw results → optional static site).
+
+If stakeholders later require a pure Gherkin view, you can reintroduce:
+```ts
+// In playwright.config.ts reporter array (example)
+// const { cucumberReporter } = require('playwright-bdd');
+// ['cucumber', { outputFile: 'cucumber-report/report.html' }]
+```
+but keep it disabled unless actively consumed.
 
 ## Adding New Tests
 

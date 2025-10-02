@@ -57,12 +57,12 @@ jobs:
         retention-days: 30
         if-no-files-found: warn
     
-    - name: Upload API cucumber reports
+    - name: Upload API Allure results
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: api-cucumber-report
-        path: cucumber-report/
+        name: api-allure-results
+        path: allure-results/
         retention-days: 30
         if-no-files-found: warn
     
@@ -123,12 +123,12 @@ jobs:
         retention-days: 30
         if-no-files-found: warn
     
-    - name: Upload UI cucumber reports
+    - name: Upload UI Allure results
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: ui-cucumber-report
-        path: cucumber-report/
+        name: ui-allure-results
+        path: allure-results/
         retention-days: 30
         if-no-files-found: warn
     

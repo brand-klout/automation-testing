@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
-import { defineBddProject, cucumberReporter } from 'playwright-bdd';
+import { defineBddProject } from 'playwright-bdd';
 
 /**
  * @see https://playwright.dev/docs/test-configuration
@@ -20,7 +20,7 @@ export default defineConfig({
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
     ['html'],
-    cucumberReporter('html', { outputFile: 'cucumber-report/report.html' }),
+    ['allure-playwright', { outputFolder: 'allure-results', detail: true, suiteTitle: false }],
   ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
