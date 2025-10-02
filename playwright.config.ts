@@ -20,7 +20,6 @@ export default defineConfig({
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
     ['html'],
-    ['junit', { outputFile: 'test-results.xml' }],
     cucumberReporter('html', { outputFile: 'cucumber-report/report.html' }),
   ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
@@ -41,8 +40,11 @@ export default defineConfig({
     {
       ...defineBddProject({
         name: 'ui-tests',
-        features: 'features/**/*.feature', // Process all features
-        steps: 'tests/steps/**/*.ts',
+        features: 'features/ui/**/*.feature', // Only UI feature files
+        steps: [
+          'tests/steps/fixtures.ts',      // shared fixtures & test instance
+          'tests/steps/ui/**/*.ts',       // UI step definitions
+        ],
         outputDir: '.features-gen/ui',
       }),
       use: { 
@@ -57,8 +59,11 @@ export default defineConfig({
     {
       ...defineBddProject({
         name: 'api-tests',
-        features: 'features/**/*.feature', // Process all features
-        steps: 'tests/steps/**/*.ts',
+        features: 'features/api/**/*.feature', // Only API feature files
+        steps: [
+          'tests/steps/fixtures.ts',     // shared fixtures & test instance
+          'tests/steps/api/**/*.ts',     // API step definitions
+        ],
         outputDir: '.features-gen/api',
       }),
       use: {

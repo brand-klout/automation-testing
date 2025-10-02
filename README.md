@@ -1,13 +1,13 @@
 # Playwright BDD Demo
 
-A simplified Playwright BDD testing project that supports both API and UI automation testing.
+A Playwright + BDD demo project with **clean separation** between API and UI feature domains.
 
 ## Features
 
 - 🎯 **Pure BDD Mode**: Test structure based on Gherkin feature files
-- 🔄 **API + UI Separation**: Support different types of tests through tags
-- 🏷️ **Tag-driven**: Organize tests with `@api` and `@ui` tags
-- 🌐 **Simple Configuration**: Only essential test projects included
+- 🔄 **API ↔ UI Separation**: Distinct feature/step folders (`features/api`, `features/ui`)
+- 🏷️ **Tag-driven Execution**: `@api` and `@ui` filtering per Playwright project
+- 🌐 **Minimal, Focused Configuration**
 
 ## Quick Start
 
@@ -51,59 +51,76 @@ npm run report
 
 ```
 playwright-demo/
-├── .features-gen/          # Auto-generated BDD test files
-│   ├── api/               # API-specific generated tests
-│   └── ui/                # UI-specific generated tests
-├── features/               # Gherkin feature files
-│   └── user-management.feature # Mixed @api and @ui test scenarios
+├── .features-gen/              # Auto-generated BDD JS tests
+│   ├── api/                    # Generated from features/api
+│   └── ui/                     # Generated from features/ui
+├── features/
+│   ├── api/                    # API feature files (pure @api)
+│   │   └── user-management-api.feature
+│   └── ui/                     # UI feature files (pure @ui)
+│       └── user-management-ui.feature
 ├── tests/
-│   ├── pages/             # Page Object Model
+│   ├── pages/                  # Page Object Models
 │   │   └── HomePage.ts
-│   └── steps/             # BDD step definitions
-│       ├── fixtures.ts    # Test fixtures
-│       ├── api.steps.ts   # API test steps
-│       └── homepage.steps.ts # UI test steps
-├── playwright.config.ts   # Playwright configuration
+│   └── steps/
+│       ├── fixtures.ts         # Shared fixtures + BDD binding (imported by steps)
+│       ├── api/                # API step definitions only
+│       │   └── api.steps.ts
+│       └── ui/                 # UI step definitions only
+│           └── ui.steps.ts
+├── playwright.config.ts        # Two Playwright BDD projects (api-tests, ui-tests)
 └── package.json
 ```
 
-**Key Features**: 
-- **Mixed Test Tags**: Same feature file contains both @api and @ui tests
-- **Tag-based Filtering**: Each project uses `grep` to run only relevant tests
-- **Sequential Execution**: CI runs API tests first, then UI tests (only if API passes)
+**Structure Rationale**:
+- Prevents accidental cross‑layer coupling (no API steps inside UI scenarios and vice versa)
+- Faster generation: each project only scans its own feature set
+- Clear ownership for teams (API vs UI)
+- Easier review diffs (no unrelated domain churn in one file)
 
 ## Test Examples
 
-### Mixed API and UI Tests in Same Feature
+### Example: API Feature (pure)
 
 ```gherkin
-# features/user-management.feature
-Feature: User Management
+# features/api/user-management-api.feature
+Feature: User Management API
   As a system administrator
-  I want to manage users through both API and UI
-  So that I can perform operations through different interfaces
+  I want to manage users via the public API
+  So that backend operations are validated
 
   @api
-  Scenario: Get user list via API
+  Scenario: Get user list
     When I send a GET request to "/users"
     Then the response status should be 200
     And the response should be an array
 
   @api
-  Scenario: Create user via API
+  Scenario: Create user
     Given I have a new user with email "test@example.com"
     When I send a POST request to "/users" with the user data
     Then the response status should be 201
     And the response should contain the user ID
+```
+
+### Example: UI Feature (pure)
+
+```gherkin
+# features/ui/user-management-ui.feature
+Feature: User Management UI
+  As a platform user
+  I want to access the homepage
+  So that I can navigate using primary entry points
+
+  Background:
+    Given I am on the homepage
 
   @ui
   Scenario: Visit homepage
-    Given I am on the homepage
     Then I should see the "Get started" button
 
   @ui
   Scenario: Display main navigation elements
-    Given I am on the homepage
     Then I should see the "Get started" button
     And I should see the "Docs" link
 ```
@@ -123,15 +140,15 @@ Feature: User Management
 
 ### Add API Tests
 
-1. Use `@api` tag in feature files
-2. Implement steps in `tests/steps/api.steps.ts`
+1. Create/modify files under `features/api/` (each scenario tagged `@api`)
+2. Implement steps in `tests/steps/api/` (reuse shared fixtures via `../fixtures`)
 3. Run `npm run test:api`
 
 ### Add UI Tests
 
-1. Use `@ui` tag in feature files  
-2. Create page objects in `tests/pages/`
-3. Implement steps in `tests/steps/`
+1. Create/modify files under `features/ui/` (each scenario tagged `@ui`)
+2. Create/extend Page Objects in `tests/pages/`
+3. Implement steps in `tests/steps/ui/`
 4. Run `npm run test:ui`
 
 ## Configuration
@@ -145,55 +162,18 @@ This approach allows you to write mixed test scenarios in a single feature file 
 
 ### Execution Flow
 
-**Local Development**: Both project types can run in parallel
+CI still runs API first then UI. Locally you can run them independently or together:
 ```bash
-npm run test:api  # Runs only @api tests
-npm run test:ui   # Runs only @ui tests
-npm run bdd       # Runs both (all tests)
+npm run test:api   # API only (@api)
+npm run test:ui    # UI only (@ui)
+npm run bdd        # Generate + run both
 ```
-
-**CI/CD (GitHub Actions)**: Sequential execution for reliability
-1. 🔍 **API Tests** run first (fast, no browser needed)
-2. ✅ If API tests pass → 🎨 **UI Tests** run next
-3. ❌ If API tests fail → UI tests are skipped
 
 ## Testing Patterns
 
 ### BDD Feature Files
 
-Write human-readable test scenarios using Gherkin syntax with mixed tags:
-
-```gherkin
-# features/user-management.feature
-Feature: User Management
-  As a system administrator
-  I want to manage users through both API and UI
-  So that I can perform operations through different interfaces
-
-  @api
-  Scenario: Get all posts from API
-    When I send a GET request to "/posts"
-    Then the response status should be 200
-    And the response should contain a list of posts
-
-  @api
-  Scenario: Create a new post via API
-    Given I have a new post with title "My Test Post"
-    When I send a POST request to "/posts" with the post data
-    Then the response status should be 201
-    And the response should contain the created post
-
-  @ui
-  Scenario: Navigate homepage elements
-    Given I am on the homepage
-    Then I should see the "Get started" button
-    And I should see the "Docs" link
-
-  @ui
-  Scenario: Verify page accessibility
-    Given I am on the homepage
-    Then I should see the "Get started" button
-```
+Keep API and UI concerns separate. Avoid mixing API and UI steps in the same scenario to maintain clarity and speed.
 
 ### Step Definitions
 
@@ -322,25 +302,25 @@ npx playwright show-trace test-results/example-test/trace.zip
 
 ### How to add new API tests?
 
-1. Create or update feature files in `features/` directory with `@api` tag
-2. Implement step definitions in `tests/steps/api.steps.ts`
-3. Run `npm run bdd:gen` to generate test files
-4. Run `npm run test:api` to execute API tests
+1. Add feature under `features/api/` with `@api`
+2. Add/modify steps in `tests/steps/api/`
+3. `npm run bdd:gen`
+4. `npm run test:api`
 
 ### How to add new UI tests?
 
-1. Create or update feature files in `features/` directory with `@ui` tag
-2. Create page object classes in `tests/pages/`
-3. Implement UI step definitions in `tests/steps/`
-4. Run `npm run bdd:gen` to generate test files
-5. Run `npm run test:ui` to execute UI tests
+1. Add feature under `features/ui/` with `@ui`
+2. Add/extend page objects in `tests/pages/`
+3. Add/modify steps in `tests/steps/ui/`
+4. `npm run bdd:gen`
+5. `npm run test:ui`
 
 ## Contributing
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
+2. Create a feature branch (`git checkout -b feature/scope-name`)
+3. Commit (`git commit -m 'feat: concise summary'`)
+4. Push (`git push origin feature/scope-name`)
 5. Open a Pull Request
 
 ## License

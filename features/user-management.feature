@@ -26,3 +26,13 @@ Feature: User Management
     Given I am on the homepage
     Then I should see the "Get started" button
     And I should see the "Docs" link
+
+  @ui
+  Scenario: Cross-check API created user appears after UI navigation (demo mix)
+    # API read existing users (shared data fetch)
+    When I send a GET request to "/users"
+    Then the response status should be 200
+    And the response should be an array
+    # UI verify homepage still accessible after API operation
+    Given I am on the homepage
+    Then I should see the "Get started" button

@@ -52,10 +52,8 @@ jobs:
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: api-test-results
-        path: |
-          playwright-report/
-          test-results.xml
+        name: api-test-report
+        path: playwright-report/
         retention-days: 30
         if-no-files-found: warn
     
@@ -120,10 +118,8 @@ jobs:
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: ui-test-results
-        path: |
-          playwright-report/
-          test-results.xml
+        name: ui-test-report
+        path: playwright-report/
         retention-days: 30
         if-no-files-found: warn
     
