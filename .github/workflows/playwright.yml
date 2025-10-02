@@ -170,6 +170,16 @@ jobs:
       - name: Checkout repository (for potential metadata)
         uses: actions/checkout@v4
 
+      - name: Restore previous Allure history
+        id: allure-history-cache
+        uses: actions/cache@v4
+        with:
+          path: .allure-history
+          key: allure-history-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: |
+            allure-history-${{ github.ref_name }}-
+            allure-history-
+
       - name: Download API Allure results
         uses: actions/download-artifact@v4
         with:
@@ -202,6 +212,12 @@ jobs:
           echo " API result files: $(ls -1 merged-allure/api 2>/dev/null | wc -l || true)"
           echo " UI  result files: $(ls -1 merged-allure/ui 2>/dev/null | wc -l || true)"
           echo " Combined files: $(ls -1 allure-results 2>/dev/null | wc -l || true)"
+          # If previous history exists, integrate it
+          if [ -d .allure-history/history ]; then
+            echo "Restoring previous Allure history"
+            mkdir -p allure-results/history
+            cp -R .allure-history/history/. allure-results/history/ || true
+          fi
 
       - name: Install Node (for allure commandline dependency)
         uses: actions/setup-node@v4
@@ -215,6 +231,12 @@ jobs:
       - name: Generate Allure static site
         run: |
           npx allure generate allure-results --clean -o allure-report
+          # Save new history for next run
+          rm -rf .allure-history
+          mkdir -p .allure-history
+          if [ -d allure-report/history ]; then
+            cp -R allure-report/history .allure-history/
+          fi
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

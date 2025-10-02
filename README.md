@@ -64,10 +64,6 @@ playwright-demo/
 ├── tests/
 │   ├── pages/                  # Page Object Models
 │   │   └── HomePage.ts
-│   └── steps/
-│       ├── fixtures.ts         # Shared fixtures + BDD binding (imported by steps)
-│       ├── api/                # API step definitions only
-│       │   └── api.steps.ts
 │       └── ui/                 # UI step definitions only
 │           └── ui.steps.ts
 ├── playwright.config.ts        # Two Playwright BDD projects (api-tests, ui-tests)
@@ -128,11 +124,66 @@ Feature: User Management
 |--------|-------------|
 | `npm run bdd:gen` | Generate BDD test files |
 | `npm run test:api` | Run API tests |
-| `npm run test:ui` | Run UI tests |
-| `npm run test:dual` | Run scenarios tagged with both @api and @ui (classification overlap) |
-| `npm run bdd` | Generate and run all tests |
 | `npm run bdd:debug` | Run in debug mode |
 | `npm run report` | View test reports |
+### Allure GitHub Pages Deployment (with Persistent History)
+
+CI merges `allure-results` from API + UI jobs and publishes a unified Allure site to GitHub Pages on every push to the default branch. A cache now persists the `history/` directory so trend charts (flaky tests, duration, categories) accumulate over time per branch.
+
+Workflow components:
+- `publish-allure`:
+  - Restores prior history via `actions/cache` (key prefix `allure-history-<branch>`)
+  - Downloads and merges `api-allure-results` + `ui-allure-results`
+  - Injects previous `history/` into new run's `allure-results`
+  - Generates site (`npx allure generate`)
+  - Saves updated history back into cache (`.allure-history/history`)
+  - Uploads static site as Pages artifact
+- `deploy-allure`: Publishes the uploaded artifact using GitHub Pages
+
+Accessing the report:
+```
+https://<your-org-or-user>.github.io/<repo-name>/
+```
+Example (org/user `example`, repo `playwright-demo`):
+```
+https://example.github.io/playwright-demo/
+```
+
+Key behaviors:
+1. Deployment triggers only on `push` (PRs build but do not publish Pages).
+2. Failed runs still publish a site (helpful for triage visibility).
+3. Trends persist per branch; switching branches yields independent histories.
+4. Force a fresh baseline by deleting the cache key or changing its prefix.
+5. To completely reset history manually: bump the cache key prefix in the workflow.
+
+Local reproduction (single run):
+```bash
+npm run test:api && npm run test:ui
+npx allure generate allure-results --clean -o allure-report
+npx allure open allure-report
+```
+
+Local multi-run history simulation:
+```bash
+# Run once, generate, preserve history
+npx allure generate allure-results --clean -o allure-report
+cp -R allure-report/history saved-history
+
+# After another test run (new allure-results) restore history
+mkdir -p allure-results/history
+cp -R saved-history/. allure-results/history/
+npx allure generate allure-results --clean -o allure-report
+```
+
+Cache strategy summary:
+| Aspect | Value |
+|--------|-------|
+| Cache key | `allure-history-<branch>-<run_id>` (with restore keys for branch + global) |
+| Stored path | `.allure-history/history` |
+| Merge logic | Copy restored history before generation, export new history after |
+| Reset method | Change key prefix or delete cache via GitHub UI |
+
+If you later need cross-branch aggregation, implement a nightly workflow that merges histories before generation.
 
 ## Adding New Tests
 
