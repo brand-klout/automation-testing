@@ -78,6 +78,7 @@ export default defineConfig({
       },
       testMatch: /.*\.feature\.spec\.js/,
       grep: /@api/, // Only run @api tagged tests
+      grepInvert: /@ui/, // Exclude any scenario that is also @ui to avoid UI-only steps causing browser launch in API run
     },
   ],
 

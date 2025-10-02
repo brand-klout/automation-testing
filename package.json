@@ -37,7 +37,6 @@
     "allure-commandline": "^2.29.0"
   },
   "optionalDependencies": {
-    "axe-playwright": "^1.2.3",
     "allure-playwright": "^2.10.0"
   }
 }

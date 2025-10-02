@@ -221,6 +221,8 @@ npm run test:dual  # Only dual-tag (@api @ui) scenarios (classification overlap)
 npm run bdd        # Generate + run both
 ```
 
+Note: The API project now uses a `grepInvert: /@ui/` filter internally so any scenario tagged with both `@api @ui` is intentionally skipped during the API pipeline (preventing accidental UI step execution without browsers installed). The UI project still executes dual-tag scenarios.
+
 ## Testing Patterns
 
 ### BDD Feature Files
