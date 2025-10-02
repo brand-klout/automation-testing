@@ -46,6 +46,8 @@ node_modules/
 /.features-gen/
 /cucumber-report/
 test-results.json
+allure-results/
+allure-report/
 
 # IDE
 .vscode/

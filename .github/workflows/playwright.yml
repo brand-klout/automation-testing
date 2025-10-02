@@ -32,18 +32,13 @@ jobs:
       run: |
         echo "Generating BDD tests for API project"
         npm run bdd:gen
-        echo "Generated files for API tests:"
-        if [ -d ".features-gen/api-tests" ]; then
-          find .features-gen/api-tests -name "*.js" -type f || echo "No JS files found"
-        else
-          echo "Directory .features-gen/api-tests not found"
-          find .features-gen -type f || echo "No generated files found"
-        fi
+        echo "Generated files (API project filters via grep @api):"
+        find .features-gen/api -name "*.js" -type f 2>/dev/null || echo "No API generated JS (expected if cached)"
     
     - name: Run API Tests
       run: |
-        echo "Running API tests"
-        npx playwright test --project=api-tests --reporter=list
+        echo "Running API tests (default reporters: html + allure)"
+        npx playwright test --project=api-tests
       env:
         CI: true
         API_BASE_URL: https://jsonplaceholder.typicode.com
@@ -98,18 +93,13 @@ jobs:
       run: |
         echo "Generating BDD tests for UI project"
         npm run bdd:gen
-        echo "Generated files for UI tests:"
-        if [ -d ".features-gen/ui-tests" ]; then
-          find .features-gen/ui-tests -name "*.js" -type f || echo "No JS files found"
-        else
-          echo "Directory .features-gen/ui-tests not found"
-          find .features-gen -type f || echo "No generated files found"
-        fi
+        echo "Generated files (UI project filters via grep @ui):"
+        find .features-gen/ui -name "*.js" -type f 2>/dev/null || echo "No UI generated JS (expected if cached)"
     
     - name: Run UI Tests
       run: |
-        echo "Running UI tests"
-        npx playwright test --project=ui-tests --reporter=list
+        echo "Running UI tests (default reporters: html + allure)"
+        npx playwright test --project=ui-tests
       env:
         CI: true
         BASE_URL: https://playwright.dev
