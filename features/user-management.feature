@@ -17,6 +17,13 @@ Feature: User Management
     Then the response status should be 201
     And the response should contain the user ID
 
+  @api
+  Scenario: Create another user via API
+    Given I have a new user with email "second@example.com"
+    When I send a POST request to "/users" with the user data
+    Then the response status should be 201
+    And the response should contain the user ID
+
   # UI Scenarios (@ui)
   @ui
   Scenario: Visit homepage
@@ -29,13 +36,10 @@ Feature: User Management
     Then I should see the "Get started" button
     And I should see the "Docs" link
 
-  # (Optional pattern) A scenario could carry both tags if logically valid:
-  # @api @ui
-    # (Optional) Dual-tag classification example (no cross-layer step mixing)
-    # @api @ui
-    # Scenario: Example classification-only
-    #   Given I am on the homepage
-    #   Then I should see the "Get started" button
+  @ui
+  Scenario: View homepage then see Docs link
+    Given I am on the homepage
+    Then I should see the "Docs" link
 
     @api @ui
     Scenario: Classification only: homepage visibility (dual-tag)

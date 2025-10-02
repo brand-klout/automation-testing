@@ -28,7 +28,7 @@ npm run allure:generate && npm run allure:open
 
 ## 2. Tag Strategy
 Single feature directory (`features/`). Two Playwright BDD projects filter scenarios:
-- `api-tests`: `grep: /@api/` + `grepInvert: /@ui/` (跳过双标签 & UI 场景，避免浏览器依赖)
+- `api-tests`: `grep: /@api/` + `grepInvert: /@ui/` (skips dual-tag & UI scenarios to avoid browser dependency)
 - `ui-tests`: `grep: /@ui/`
 
 Dual tag `@api @ui` 用于分类而只在 UI 项目执行。API 项目不再尝试运行这些场景。
@@ -77,10 +77,10 @@ export const { Given, When, Then } = createBdd(test);
 ```
 
 ## 6. Reporting (Allure + Pages)
-CI 合并 API & UI 结果，生成 Allure 静态站点并发布到 Pages：
+CI merges API & UI results, generates Allure static site and publishes to Pages:
 `https://aimer1124.github.io/playwright-demo/`
 
-历史趋势通过 cache (key: `allure-history-<branch>`) 保留。删除 / 变更 key 可以重置趋势。
+History trends preserved via cache (key: `allure-history-<branch>`). Delete or change the key to reset trends.
 
 ## 7. Useful Commands
 | Purpose | Command |
@@ -108,5 +108,5 @@ Keep steps domain pure; dual tag only when you want a shared classification buck
 MIT License – see `LICENSE`.
 
 ---
-精简版 README：专注当前真实结构、标签策略与报告流程。如需再增加特性（如 flaky 分类 / nightly history merge），可后续补充。
+
 
