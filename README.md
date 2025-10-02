@@ -31,7 +31,7 @@ Single feature directory (`features/`). Two Playwright BDD projects filter scena
 - `api-tests`: `grep: /@api/` + `grepInvert: /@ui/` (skips dual-tag & UI scenarios to avoid browser dependency)
 - `ui-tests`: `grep: /@ui/`
 
-Dual tag `@api @ui` 用于分类而只在 UI 项目执行。API 项目不再尝试运行这些场景。
+Dual tag `@api @ui` is for classification and is executed only in the UI project. The API project intentionally skips these dual-tag scenarios.
 
 ## 3. Current Structure
 ```
@@ -106,7 +106,7 @@ Keep steps domain pure; dual tag only when you want a shared classification buck
 
 ## 10. Contributing / License
 MIT License – see `LICENSE`.
-
 ---
+
 
 
