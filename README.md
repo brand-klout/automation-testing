@@ -178,7 +178,7 @@ npx allure generate allure-results --clean -o allure-report
 Cache strategy summary:
 | Aspect | Value |
 |--------|-------|
-| Cache key | `allure-history-<branch>-<run_id>` (with restore keys for branch + global) |
+| Cache key | `allure-history-<branch>` (restore fallbacks: main, master, global) |
 | Stored path | `.allure-history/history` |
 | Merge logic | Copy restored history before generation, export new history after |
 | Reset method | Change key prefix or delete cache via GitHub UI |

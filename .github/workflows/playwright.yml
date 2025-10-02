@@ -175,13 +175,16 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .allure-history
-          key: allure-history-${{ github.ref_name }}-${{ github.run_id }}
+          key: allure-history-${{ github.ref_name }}
           restore-keys: |
-            allure-history-${{ github.ref_name }}-
+            allure-history-${{ github.ref_name }}
+            allure-history-main
+            allure-history-master
             allure-history-
 
       - name: Download API Allure results
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: api-allure-results
           path: merged-allure/api
@@ -189,6 +192,7 @@ jobs:
 
       - name: Download UI Allure results
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: ui-allure-results
           path: merged-allure/ui
@@ -200,12 +204,11 @@ jobs:
           mkdir -p allure-results
           echo "Merging Allure results from API and UI runs"
           # Copy API results first
-          if [ -d merged-allure/api ]; then
+          if [ -d merged-allure/api ] && ls -1 merged-allure/api 1>/dev/null 2>&1; then
             cp -R merged-allure/api/. allure-results/
           fi
           # Copy UI results (may overwrite history files but that's acceptable for single-run merge)
-            
-          if [ -d merged-allure/ui ]; then
+          if [ -d merged-allure/ui ] && ls -1 merged-allure/ui 1>/dev/null 2>&1; then
             cp -R merged-allure/ui/. allure-results/
           fi
           echo "Counts:" 
@@ -250,7 +253,17 @@ jobs:
     if: github.event_name == 'push'
     needs: publish-allure
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+      - name: Publish deployment URL to summary
+        if: always()
+        run: |
+          if [ -n "${{ steps.deployment.outputs.page_url }}" ]; then
+            echo "### Allure Report" >> $GITHUB_STEP_SUMMARY
+            echo "Published: ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
+          fi
