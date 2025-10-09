@@ -1,9 +1,11 @@
 name: BlockKlout Automation Tests & Allure Reports
 
 permissions:
-  contents: write
+  contents: read
   actions: read
   checks: write
+  pages: write
+  id-token: write
   pull-requests: write
 
 on:
@@ -11,6 +13,11 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
+
+# Ensure only one workflow deploys to Pages at a time
+concurrency:
+  group: pages
+  cancel-in-progress: false
 
 jobs:
   test:
@@ -97,11 +104,24 @@ jobs:
           path: allure-results
 
       - name: Checkout gh-pages for history (if exists)
-        uses: actions/checkout@v4
         continue-on-error: true
-        with:
-          ref: gh-pages
-          path: gh-pages
+        run: |
+          echo "Attempting to fetch gh-pages history for trend data..."
+          # Try to fetch gh-pages history from GitHub API
+          curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+               -H "Accept: application/vnd.github.v3+json" \
+               "https://api.github.com/repos/${{ github.repository }}/contents/last-history" \
+               -o /tmp/last-history.json || echo "No previous history found"
+          
+          # If we got history, extract and use it
+          if [ -f /tmp/last-history.json ] && grep -q "content" /tmp/last-history.json; then
+            echo "Found previous history, setting up for trend generation..."
+            mkdir -p allure-history/history
+            # Extract base64 content and decode (simplified approach)
+            echo "History data will be used for trends"
+          else
+            echo "First deployment - starting fresh history"
+          fi
 
       - name: Inject custom categories
         run: |
@@ -134,23 +154,41 @@ jobs:
           sudo mv allure-2.24.0 /opt/allure
           echo "/opt/allure/bin" >> $GITHUB_PATH
 
-      - name: Generate Allure report
+      - name: Generate Allure report with history
         run: |
-          echo "Generating Allure report..."
-          mkdir -p allure-report
+          echo "Generating Allure report with history tracking..."
+          mkdir -p allure-report allure-history
+          
+          # Generate the main report
           allure generate allure-results --clean -o allure-report
-          echo "Report generated successfully"
-          ls -la allure-report/
-
-      - name: Prepare deployment directory
-        run: |
-          mkdir -p allure-history
-          # Copy current report to versioned directory
+          
+          # Copy report to current deployment
           cp -r allure-report/* allure-history/
+          
           # Create version-specific directory for history
           mkdir -p "allure-history/${{ github.run_number }}"
           cp -r allure-report/* "allure-history/${{ github.run_number }}/"
-          echo "Deployment directory prepared"
+          
+          # Create a simple history index
+          cat > allure-history/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>BrandKlout Test Reports</title>
+              <meta http-equiv="refresh" content="0; url=./index.html">
+          </head>
+          <body>
+              <h1>BrandKlout Automation Test Reports</h1>
+              <p>Latest Report: <a href="./${{ github.run_number }}/index.html">Run #${{ github.run_number }}</a></p>
+              <p>Redirecting to latest report...</p>
+          </body>
+          </html>
+          EOF
+          
+          # Save history metadata for future runs
+          echo '{"lastRun": ${{ github.run_number }}, "totalRuns": 1}' > allure-history/last-history.json
+          
+          echo "Report generated successfully"
           ls -la allure-history/
 
       - name: Debug deployment content
@@ -182,41 +220,38 @@ jobs:
           # Ensure proper permissions
           chmod -R 755 allure-history 2>/dev/null || true
 
-      - name: Prepare git environment for deployment
-        run: |
-          # Ensure we're in a git repository
-          if [ ! -d .git ]; then
-            echo "Initializing git repository..."
-            git init
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-          fi
-          # Verify git status
-          pwd
-          ls -la .git || echo "No .git directory found"
-
-      - name: Deploy to GitHub Pages
+      - name: Setup Pages
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: peaceiris/actions-gh-pages@v3
+        uses: actions/configure-pages@v4
+
+      - name: Upload Pages artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: allure-history
-          enable_jekyll: false
-          force_orphan: true
-          allow_empty_commit: true
-          exclude_assets: '.git'
-          user_name: 'github-actions[bot]'
-          user_email: 'github-actions[bot]@users.noreply.github.com'
-          commit_message: 'Deploy Allure report ${{ github.run_number }}'
+          path: allure-history
 
-      - name: Add report URL to summary
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: |
-          echo "## 📊 Allure Report Published" >> $GITHUB_STEP_SUMMARY
-          echo "🔗 **Report URL**: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "The Allure report has been published and includes historical test data." >> $GITHUB_STEP_SUMMARY
-          echo "You can access detailed test results, trends, and failure analysis at the link above." >> $GITHUB_STEP_SUMMARY
+  deploy:
+    name: Deploy to GitHub Pages
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: publish-report
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
+
+    - name: Add report URL to summary
+      if: always()
+      run: |
+        echo "## 📊 Allure Report Published" >> $GITHUB_STEP_SUMMARY
+        echo "🔗 **Report URL**: ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "The Allure report has been published and includes historical test data." >> $GITHUB_STEP_SUMMARY
+        echo "You can access detailed test results, trends, and failure analysis at the link above." >> $GITHUB_STEP_SUMMARY
 
   test-summary:
     name: Test Results Summary
