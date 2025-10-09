@@ -1,11 +1,9 @@
 name: BlockKlout Automation Tests & Allure Reports
 
 permissions:
-  contents: read
+  contents: write
   actions: read
   checks: write
-  pages: write
-  id-token: write
   pull-requests: write
 
 on:
@@ -13,11 +11,6 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
-
-# Ensure only one workflow deploys to Pages at a time
-concurrency:
-  group: pages
-  cancel-in-progress: false
 
 jobs:
   test:
@@ -130,36 +123,25 @@ jobs:
           echo '--- Version folders (after) ---'
           ls -1 allure-history 2>/dev/null || true
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Deploy to GitHub Pages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v3
         with:
-          path: allure-history
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: allure-history
+          enable_jekyll: false
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          commit_message: 'Deploy Allure report ${{ github.run_number }}'
 
-  deploy:
-    name: Deploy to GitHub Pages
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: publish-report
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    
-    steps:
-    - name: Deploy to GitHub Pages
-      id: deployment
-      uses: actions/deploy-pages@v4
-
-    - name: Add report URL to summary
-      if: always()
-      run: |
-        echo "## 📊 Allure Report Published" >> $GITHUB_STEP_SUMMARY
-        echo "🔗 **Report URL**: ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "The Allure report has been published and includes historical test data." >> $GITHUB_STEP_SUMMARY
-        echo "You can access detailed test results, trends, and failure analysis at the link above." >> $GITHUB_STEP_SUMMARY
+      - name: Add report URL to summary
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          echo "## 📊 Allure Report Published" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 **Report URL**: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The Allure report has been published and includes historical test data." >> $GITHUB_STEP_SUMMARY
+          echo "You can access detailed test results, trends, and failure analysis at the link above." >> $GITHUB_STEP_SUMMARY
 
   test-summary:
     name: Test Results Summary
