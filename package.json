@@ -7,6 +7,7 @@
     "test:api": "playwright test --project=api-tests",
     "test:ui": "playwright test --project=ui-tests",
     "test:bdd": "bddgen && playwright test",
+    "bdd": "bddgen && playwright test",
     "bdd:gen": "bddgen",
     "bdd:debug": "bddgen && playwright test --debug",
     "bdd:headed": "bddgen && playwright test --headed",
