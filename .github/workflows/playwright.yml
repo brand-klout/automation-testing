@@ -1,194 +1,103 @@
-name: BlockKlout Automation Tests & Allure Reports
-
-permissions:
-  contents: read
-  actions: read
-  checks: write
-  pages: write
-  id-token: write
-  pull-requests: write
+name: Playwright Tests with Allure Reports
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main ]
 
-# Ensure only one workflow deploys to Pages at a time
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 concurrency:
-  group: pages
+  group: "pages"
   cancel-in-progress: false
 
 jobs:
   test:
-    name: Run Tests & Generate Reports
     runs-on: ubuntu-latest
-    
     steps:
-    - uses: actions/checkout@v4
-    
-    - uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        cache: 'npm'
-    
-    - name: Cache Playwright browsers
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cache/ms-playwright
-          ~/Library/Caches/ms-playwright
-          %USERPROFILE%\AppData\Local\ms-playwright
-        key: ${{ runner.os }}-playwright-${{ hashFiles('**/package-lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-playwright-
-    
-    - name: Install dependencies
-      run: npm ci
-    
-    - name: Install Playwright browsers
-      run: npx playwright install chromium --with-deps
-    
-    - name: Cache BDD generated tests
-      uses: actions/cache@v4
-      with:
-        path: .features-gen
-        key: bdd-gen-${{ hashFiles('features/**/*.feature', 'tests/steps/**/*.ts') }}
-        restore-keys: |
-          bdd-gen-
-    
-    - name: Generate BDD tests
-      run: npm run bdd:gen
-    
-    - name: Run all tests
-      run: npm run bdd
-      env:
-        CI: true
-        BASE_URL: https://playwright.dev
-        API_BASE_URL: https://jsonplaceholder.typicode.com
-    
-    - name: Upload Allure results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: allure-results
-        path: allure-results/
-        retention-days: 30
-
-  publish-report:
-    name: Generate & Publish Allure Report
-    if: always()
-    needs: test
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Fetch full history for git operations
-
+      - uses: actions/checkout@v4
+      
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
+          cache: 'npm'
 
-      - name: Setup git config
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Download test results artifact
-        uses: actions/download-artifact@v4
+      - name: Cache dependencies and browsers
+        uses: actions/cache@v4
         with:
-          name: allure-results
-          path: allure-results
+          path: |
+            ~/.npm
+            ~/.cache/ms-playwright
+          key: ${{ runner.os }}-deps-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-deps-
 
-      - name: Download previous history (if exists)
-        continue-on-error: true
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Cache BDD generated tests
+        uses: actions/cache@v4
+        with:
+          path: .features-gen
+          key: bdd-gen-${{ runner.os }}-${{ hashFiles('features/**/*.feature', 'tests/steps/**/*.ts') }}
+          restore-keys: |
+            bdd-gen-${{ runner.os }}-
+
+      - name: Generate BDD tests
+        run: npm run bdd:gen
+
+      - name: Download previous Allure history
         run: |
-          echo "Attempting to download previous Allure history..."
-          
-          # Create history directory
           mkdir -p allure-results/history
-          
-          # Try to download previous history files from deployed site
           base_url="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
           
-          # Download history files if they exist
           for file in history.json history-trend.json duration-trend.json retry-trend.json; do
             echo "Downloading history/$file..."
             curl -f -s "$base_url/history/$file" -o "allure-results/history/$file" || echo "No previous $file found"
           done
-          
-          # List what we got
-          echo "Downloaded history files:"
-          ls -la allure-results/history/ || echo "No history files downloaded"
 
       - name: Inject custom categories
         run: |
           if [ -f allure-categories/categories.json ]; then
             cp allure-categories/categories.json allure-results/categories.json
-            echo "Injected categories.json"
-          else
-            echo "No external categories.json found"
           fi
 
-      - name: Debug available history
-        run: |
-          echo '--- Available gh-pages content ---'
-          if [ -d gh-pages ]; then
-            ls -la gh-pages/ || true
-            if [ -d gh-pages/last-history ]; then
-              echo 'last-history directory exists:'
-              ls -la gh-pages/last-history/ || true
-            else
-              echo 'No last-history directory found'
-            fi
-          else
-            echo 'No gh-pages directory (first run)'
-          fi
+      - name: Run Playwright tests
+        run: npm run test:bdd
 
-      - name: Download Allure CLI
+      - name: Setup Allure CLI
         run: |
           curl -o allure-2.24.0.tgz -Ls https://github.com/allure-framework/allure2/releases/download/2.24.0/allure-2.24.0.tgz
           tar -zxf allure-2.24.0.tgz
           sudo mv allure-2.24.0 /opt/allure
           echo "/opt/allure/bin" >> $GITHUB_PATH
 
-      - name: Generate Allure report with history
+      - name: Generate Allure report
         run: |
-          echo "Generating Allure report with history tracking..."
           mkdir -p allure-report allure-history
-          
-          # Generate the main report (this creates history automatically)
           allure generate allure-results --clean -o allure-report
-          
-          # Copy report to current deployment
           cp -r allure-report/* allure-history/
           
-          # Ensure history directory exists in deployment
-          mkdir -p allure-history/history
-          
-          # Copy generated history files to deployment
+          # Preserve history for next run
           if [ -d allure-report/history ]; then
-            echo "Copying generated history files..."
+            mkdir -p allure-history/history
             cp -r allure-report/history/* allure-history/history/
-            ls -la allure-history/history/
-          else
-            echo "No history generated (first run or no previous data)"
           fi
           
-          # Create version-specific directory for archival
+          # Create archive copy
           mkdir -p "allure-history/${{ github.run_number }}"
           cp -r allure-report/* "allure-history/${{ github.run_number }}/"
-          
-          echo "Report generated successfully with history"
-          echo "Generated files in allure-history:"
-          find allure-history -name "*.json" | head -10
 
-      - name: Create history index page
+      - name: Create index page
         run: |
-          # Create enhanced history index with trend information
           cat > allure-history/index.html << 'EOF'
           <!DOCTYPE html>
           <html>
@@ -198,11 +107,11 @@ jobs:
               <meta name="viewport" content="width=device-width, initial-scale=1">
               <style>
                 body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
-                .report-link { display: inline-block; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin: 10px 0; }
-                .report-link:hover { background: #0056b3; }
-                .trend-link { background: #28a745; }
-                .trend-link:hover { background: #1e7e34; }
-                .highlight { background: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0; }
+                .btn { display: inline-block; padding: 12px 24px; background: #007bff; color: white; text-decoration: none; border-radius: 6px; margin: 10px 0; }
+                .btn:hover { background: #0056b3; }
+                .btn.trend { background: #28a745; }
+                .btn.trend:hover { background: #1e7e34; }
+                .highlight { background: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107; }
               </style>
           </head>
           <body>
@@ -215,7 +124,7 @@ jobs:
               </div>
               
               <h2>Latest Report with Trends</h2>
-              <p><a href="./index.html" class="report-link trend-link">📊 View Latest Report (Run #${{ github.run_number }})</a></p>
+              <p><a href="./index.html" class="btn trend">📊 View Latest Report (Run #${{ github.run_number }})</a></p>
               
               <h2>Report Information</h2>
               <ul>
@@ -225,136 +134,38 @@ jobs:
                   <li><strong>Trend Data:</strong> Available in main report</li>
               </ul>
               
-              <h3>Historical Reports Archive</h3>
-              <p><a href="./${{ github.run_number }}/index.html" class="report-link">📁 Archived Run #${{ github.run_number }}</a></p>
+              <h3>Historical Archive</h3>
+              <p><a href="./${{ github.run_number }}/index.html" class="btn">📁 Archived Run #${{ github.run_number }}</a></p>
               
               <p><small>Trend data accumulates with each test run. The "Trend" section shows historical pass/fail rates, duration changes, and retry patterns.</small></p>
           </body>
           </html>
           EOF
-          
-          echo "Created history index page"
-
-      - name: Debug deployment content
-        run: |
-          echo '--- Allure report structure ---'
-          find allure-history -type f -name "*.html" | head -5
-          echo '--- File count and size ---'
-          echo "Total files: $(find allure-history -type f | wc -l)"
-          echo "Directory size: $(du -sh allure-history)"
-
-      - name: Verify deployment content
-        run: |
-          if [ ! -d allure-history ] || [ -z "$(ls -A allure-history 2>/dev/null)" ]; then
-            echo "ERROR: allure-history is empty or missing"
-            exit 1
-          else
-            echo "✅ allure-history directory exists with content"
-            echo "File count: $(find allure-history -type f | wc -l)"
-            echo "Has index.html: $(test -f allure-history/index.html && echo "YES" || echo "NO")"
-          fi
 
       - name: Clean deployment directory
         run: |
-          # Remove .git directory if it exists to prevent permission issues
-          if [ -d allure-history/.git ]; then
-            echo "Removing .git directory from allure-history"
-            rm -rf allure-history/.git || sudo rm -rf allure-history/.git
-          fi
-          # Ensure proper permissions
+          rm -rf allure-history/.git 2>/dev/null || true
           chmod -R 755 allure-history 2>/dev/null || true
 
       - name: Setup Pages
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/configure-pages@v4
 
-      - name: Upload Pages artifact
+      - name: Upload to GitHub Pages
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v3
         with:
-          path: allure-history
+          path: ./allure-history
 
-  deploy:
-    name: Deploy to GitHub Pages
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: publish-report
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    
-    steps:
-    - name: Deploy to GitHub Pages
-      id: deployment
-      uses: actions/deploy-pages@v4
+      - name: Deploy to GitHub Pages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        id: deployment
+        uses: actions/deploy-pages@v4
 
-    - name: Add report URL to summary
-      if: always()
-      run: |
-        echo "## 📊 Allure Report Published" >> $GITHUB_STEP_SUMMARY
-        echo "🔗 **Report URL**: ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "The Allure report has been published and includes historical test data." >> $GITHUB_STEP_SUMMARY
-        echo "You can access detailed test results, trends, and failure analysis at the link above." >> $GITHUB_STEP_SUMMARY
-
-  test-summary:
-    name: Test Results Summary
-    if: always()
-    needs: test
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Test Status Summary
-      run: |
-        echo "## 🧪 Test Execution Summary" >> $GITHUB_STEP_SUMMARY
-        echo "- **Test Status**: ${{ needs.test.result }}" >> $GITHUB_STEP_SUMMARY
-        if [ "${{ needs.test.result }}" = "success" ]; then
-          echo "✅ All tests passed successfully!" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "❌ Some tests failed. Check the Allure report for details." >> $GITHUB_STEP_SUMMARY
-        fi
-
-    - name: Comment on PR
-      if: github.event_name == 'pull_request'
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const testResult = '${{ needs.test.result }}';
-          const statusIcon = testResult === 'success' ? '✅' : '❌';
-          const statusText = testResult === 'success' ? 'All tests passed' : 'Some tests failed';
-          
-          const body = `## BlockKlout Test Results ${statusIcon}
-          
-          **Status**: ${statusText}
-          
-          📊 **Detailed Reports**: Available after merge to main branch
-          - Allure report will be published to GitHub Pages
-          - Historical test trends and failure analysis included
-          
-          _Test run completed at ${new Date().toISOString()}_`;
-          
-          const { data: comments } = await github.rest.issues.listComments({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            issue_number: context.issue.number,
-          });
-          
-          const botComment = comments.find(comment => 
-            comment.user.type === 'Bot' && comment.body.includes('BlockKlout Test Results')
-          );
-          
-          if (botComment) {
-            await github.rest.issues.updateComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: botComment.id,
-              body: body
-            });
-          } else {
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: body
-            });
-          }
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results
+          path: allure-results/
+          retention-days: 30

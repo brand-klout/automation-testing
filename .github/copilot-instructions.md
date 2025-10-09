@@ -46,7 +46,6 @@ Feature: Homepage Navigation
   Background:
     Given I am on the homepage
 
-  @smoke
   Scenario: Display main navigation elements
     Then I should see the "Get started" button
     And I should see the "Docs" link

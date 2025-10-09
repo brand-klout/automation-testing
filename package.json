@@ -6,14 +6,12 @@
     "test": "playwright test",
     "test:api": "playwright test --project=api-tests",
     "test:ui": "playwright test --project=ui-tests",
-    "bdd": "bddgen && playwright test",
+    "test:bdd": "bddgen && playwright test",
     "bdd:gen": "bddgen",
-    "bdd:api": "bddgen && playwright test --project=api-tests",
-    "bdd:ui": "bddgen && playwright test --project=ui-tests",
     "bdd:debug": "bddgen && playwright test --debug",
     "bdd:headed": "bddgen && playwright test --headed",
     "allure:serve": "allure serve allure-results",
-    "install-browsers": "playwright install"
+    "setup": "playwright install --with-deps"
   },
   "keywords": [
   "brandklout",

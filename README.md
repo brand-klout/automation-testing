@@ -67,18 +67,17 @@ API_BASE_URL=https://jsonplaceholder.typicode.com
 |-----|---------|
 | @api | API-only scenarios |
 | @ui | Browser/UI scenarios |
-| @smoke | Core fast coverage |
 
 ### 6. Sample Feature
 ```gherkin
 Feature: BrandKlout Core Testing
-  @api @smoke
+  @api
   Scenario: API health
     When I send a GET request to "/users"
     Then the response status should be 200
     And the response should be an array
 
-  @ui @smoke
+  @ui
   Scenario: Homepage availability
     Given I am on the homepage
     Then I should see the main navigation menu

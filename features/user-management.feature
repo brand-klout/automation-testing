@@ -7,7 +7,7 @@ Feature: BrandKlout Core Testing
   Given the BrandKlout platform is available
 
   # API Tests
-  @api @smoke
+  @api
   Scenario: API health check
     When I send a GET request to "/users"
     Then the response status should be 200
@@ -21,7 +21,7 @@ Feature: BrandKlout Core Testing
     And the response should contain the user ID
 
   # UI Tests
-  @ui @smoke
+  @ui
   Scenario: Homepage accessibility
     Given I am on the homepage
     Then I should see the main navigation menu
@@ -34,7 +34,7 @@ Feature: BrandKlout Core Testing
   And I should see the BrandKlout logo
 
   # Integration Test
-  @api @ui @smoke
+  @api @ui
   Scenario: Platform integration check
     Then I can access the platform via API
     And I can access the platform via UI
