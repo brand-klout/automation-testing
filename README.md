@@ -1,143 +1,87 @@
-# BrandKlout Automation Testing
+## BrandKlout Automation Testing
 
-Internal E2E testing framework for BrandKlout using Playwright + BDD.
+Internal end-to-end (E2E) and BDD test suite built with Playwright.
 
-## Quick Start
-
+### 1. Quick Start
 ```bash
-# Install dependencies
 npm install
-
-# Run all tests
-npm run bdd
-
-# Generate Allure report
-npm run allure:serve
+npx playwright install
+npm run bdd            # generate + run all scenarios
+npm run test:api       # API only
+npm run test:ui        # UI only
+npm run allure:serve   # local Allure report
 ```
 
-## Test Results
+### 2. Scripts
+| Script | Purpose |
+|--------|---------|
+| bdd | Generate + run all BDD scenarios |
+| test:api | Run only API project |
+| test:ui | Run only UI project |
+| bdd:debug | Debug (Inspector) |
+| bdd:headed | Headed browser UI tests |
+| allure:serve | Serve Allure locally |
 
-Tests automatically run on push/PR and generate Allure reports accessible via GitHub Pages.
+### 3. Project Structure
+```
+features/          # Gherkin feature files
+tests/steps/       # Step definitions (api/ui/shared)
+tests/pages/       # Page objects
+.github/workflows/ # CI pipeline
+playwright.config.ts
+```
 
-## Project Structure
+### 4. Configuration
+Copy `.env.example` to `.env` (optional overrides):
+```
+BASE_URL=https://playwright.dev
+API_BASE_URL=https://jsonplaceholder.typicode.com
+```
 
-- `features/` - BDD test scenarios (Gherkin)
-- `tests/steps/` - Step implementations
-- `tests/pages/` - Page object models
-- `.github/workflows/` - CI/CD configuration
+### 5. Tags
+| Tag | Meaning |
+|-----|---------|
+| @api | API tests |
+| @ui | UI/browser tests |
+| @smoke | Core functional smoke coverage |
 
-## Configuration
-
-Copy `.env.example` to `.env` and adjust settings if needed.
-
-
-
-## 🧪 测试架构
-
-### 测试分类
-- **@api** - API 接口测试：数据验证、状态码检查
-- **@ui** - UI 界面测试：页面交互、元素可见性
-- **@smoke** - 冒烟测试：核心功能快速验证
-
-### BDD 语法示例
+### 6. Sample Feature
 ```gherkin
 Feature: BrandKlout Core Testing
   @api @smoke
-  Scenario: API health check
+  Scenario: API health
     When I send a GET request to "/users"
     Then the response status should be 200
     And the response should be an array
 
-  @ui @smoke  
-  Scenario: Homepage accessibility
+  @ui @smoke
+  Scenario: Homepage availability
     Given I am on the homepage
     Then I should see the main navigation menu
     And I should see the "Get Started" button
 ```
 
-## 🔧 可用命令
+### 7. CI
+- Runs on push / PR via GitHub Actions
+- Publishes Allure report (history preserved) to GitHub Pages
 
-| 命令 | 功能 | 说明 |
-|------|------|------|
-| `npm run bdd` | 运行所有测试 | 生成 BDD 测试并执行，输出 Allure 结果 |
-| `npm run test:api` | 仅运行 API 测试 | 执行标记为 @api 的测试场景 |
-| `npm run test:ui` | 仅运行 UI 测试 | 执行标记为 @ui 的测试场景 |
-| `npm run bdd:debug` | 调试模式 | 使用 Playwright inspector 逐步调试 |
-| `npm run bdd:headed` | 可视化模式 | 显示浏览器窗口执行 UI 测试 |
-| `npm run allure:serve` | 本地报告服务 | 启动本地 Allure 报告服务器 |
+### 8. Generated Artifacts (gitignored)
+- `allure-results/`
+- `.features-gen/`
+- `playwright-report/`
+- `test-results/`
 
-## 🔄 CI/CD 流程
+### 9. Best Practices
+- Independent, idempotent scenarios
+- Stable selectors (data-testid / role based)
+- Avoid hard waits; rely on auto-waiting
+- Keep steps high-level, logic in page objects
 
-### GitHub Actions 工作流
-1. **测试执行** - 运行所有 BDD 测试场景
-2. **报告生成** - 自动生成 Allure 测试报告
-3. **历史整合** - 合并历史测试数据
-4. **Pages 部署** - 发布到 GitHub Pages（仅 main 分支）
-5. **PR 反馈** - 在 PR 中显示测试结果摘要
+### 10. License
+Internal proprietary test assets (UNLICENSED).
 
-### 质量监控
-- 每次提交触发完整测试
-- 自动生成测试趋势图表
-- 失败率阈值监控
-- 测试稳定性分析
-
-## 📈 报告分析指南
-
-### 查看测试趋势
-1. 访问 [Allure 报告页面](https://brand-klout.github.io/automation-testing/)
-2. 点击 "Trends" 查看历史趋势
-3. 分析成功率变化和执行时间趋势
-
-### 故障排查
-1. 在 "Test results" 中查看失败的测试
-2. 点击失败测试查看详细错误信息
-3. 查看附加的截图和错误堆栈
-4. 使用标签筛选特定模块的问题
-
-## ⚙️ 环境配置
-
-### 环境变量
-```bash
-# 复制环境变量模板
-cp .env.example .env
-
-# 主要配置项
-BASE_URL=https://your-app.com          # UI 测试目标网站
-API_BASE_URL=https://api.your-app.com  # API 测试目标接口
-```
-
-### 项目结构
-```
-automation-testing/
-├── features/                   # BDD 测试场景
-├── tests/
-│   ├── pages/HomePage.ts      # 页面对象模型
-│   └── steps/                 # 步骤定义
-├── allure-results/            # 测试结果（自动生成）
-└── .github/workflows/         # CI/CD 配置
-```
-
-## 📋 最佳实践
-
-### 编写测试
-- 使用清晰的 Gherkin 语法描述业务场景
-- 合理使用标签进行测试分类
-- 保持测试的独立性和可重复性
-
-### 质量监控
-- 定期查看 Allure 报告趋势
-- 关注测试稳定性指标
-- 及时修复不稳定的测试用例
-
-### 持续改进
-- 基于报告数据优化测试覆盖率
-- 分析失败模式并改进测试设计
-- 定期更新测试环境和数据
-
-## 📞 支持
-
-- 📊 **实时报告**: [GitHub Pages](https://brand-klout.github.io/automation-testing/)
-- 🔍 **问题反馈**: [GitHub Issues](https://github.com/brand-klout/automation-testing/issues)
+---
+**BrandKlout Automation Testing**
 - 📝 **提交记录**: [GitHub Actions](https://github.com/brand-klout/automation-testing/actions)
 
 ---

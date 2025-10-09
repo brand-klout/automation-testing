@@ -1,24 +1,20 @@
 import { expect } from '@playwright/test';
 import { Given, When, Then } from '../fixtures';
 
-// Navigation steps
+// Navigation
 Given('I am on the homepage', async ({ homePage }) => {
   await homePage.goto();
 });
 
-// Visibility verification steps
+// Visibility
 Then('I should see the main navigation menu', async ({ homePage }) => {
   await expect(homePage.mainNavigation).toBeVisible();
 });
 
 Then('I should see the {string} button', async ({ homePage, page }, buttonName: string) => {
-  // Skip UI assertions for API-only runs
   const current = page.url();
-  if (current === 'about:blank' || current.includes('jsonplaceholder')) {
-    return;
-  }
-  
-  if (buttonName === 'Get started' || buttonName === 'Get Started') {
+  if (current === 'about:blank' || current.includes('jsonplaceholder')) return;
+  if (buttonName.toLowerCase() === 'get started') {
     await expect(homePage.getStartedButton).toBeVisible();
   }
 });
@@ -33,7 +29,7 @@ Then('I should see the {string} link', async ({ homePage }, linkName: string) =>
   }
 });
 
-// Platform validation steps (shared between API and UI)
+// Cross-layer validation
 Then('I can access the platform via API', async ({ request }) => {
   const response = await request.get('/posts/1', { failOnStatusCode: false });
   expect([200, 404, 401, 403].includes(response.status())).toBeTruthy();
