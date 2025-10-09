@@ -175,12 +175,25 @@ jobs:
           <html>
           <head>
               <title>BrandKlout Test Reports</title>
-              <meta http-equiv="refresh" content="0; url=./index.html">
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1">
+              <style>
+                body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+                .report-link { display: inline-block; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin: 10px 0; }
+                .report-link:hover { background: #0056b3; }
+              </style>
           </head>
           <body>
-              <h1>BrandKlout Automation Test Reports</h1>
-              <p>Latest Report: <a href="./${{ github.run_number }}/index.html">Run #${{ github.run_number }}</a></p>
-              <p>Redirecting to latest report...</p>
+              <h1>🚀 BrandKlout Automation Test Reports</h1>
+              <h2>Latest Report</h2>
+              <p><a href="./${{ github.run_number }}/index.html" class="report-link">📊 View Run #${{ github.run_number }} Report</a></p>
+              <h2>Report Information</h2>
+              <ul>
+                  <li><strong>Run Number:</strong> ${{ github.run_number }}</li>
+                  <li><strong>Generated:</strong> $(date)</li>
+                  <li><strong>Repository:</strong> ${{ github.repository }}</li>
+              </ul>
+              <p><small>This page will be updated with each test run. Bookmark this page to always access the latest results.</small></p>
           </body>
           </html>
           EOF
