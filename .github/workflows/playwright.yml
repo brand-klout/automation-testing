@@ -102,6 +102,7 @@ jobs:
           fi
 
       - name: Generate Allure report (with history)
+        id: allure-report
         uses: simple-elf/allure-report-action@v1.7
         with:
           allure_results: allure-results
@@ -113,15 +114,31 @@ jobs:
       - name: Debug new history
         run: |
           echo '--- New history (after generation) ---'
-            if [ -d allure-history/history ]; then
-              ls -l allure-history/history || true
-              echo 'history.json snippet:'
-              head -n 50 allure-history/history/history.json 2>/dev/null || true
-            else
-              echo 'Generation produced no history directory'
-            fi
+          if [ -d allure-history/history ]; then
+            ls -l allure-history/history || true
+            echo 'history.json snippet:'
+            head -n 50 allure-history/history/history.json 2>/dev/null || true
+          else
+            echo 'Generation produced no history directory'
+          fi
           echo '--- Version folders (after) ---'
           ls -1 allure-history 2>/dev/null || true
+          echo '--- Full allure-history structure ---'
+          find allure-history -type f -name "*.html" -o -name "*.json" | head -10 || true
+          echo '--- allure-history size check ---'
+          du -sh allure-history || echo "allure-history directory missing"
+
+      - name: Verify deployment content
+        run: |
+          if [ ! -d allure-history ] || [ -z "$(ls -A allure-history 2>/dev/null)" ]; then
+            echo "ERROR: allure-history is empty or missing"
+            echo "Creating minimal fallback content..."
+            mkdir -p allure-history
+            echo "<html><body><h1>Allure Report Generation Failed</h1><p>Please check CI logs</p></body></html>" > allure-history/index.html
+          else
+            echo "allure-history directory exists with content"
+            echo "File count: $(find allure-history -type f | wc -l)"
+          fi
 
       - name: Deploy to GitHub Pages
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
