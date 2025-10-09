@@ -78,37 +78,11 @@ jobs:
           path: allure-results
 
       - name: Checkout gh-pages for history (if exists)
-        id: checkout-gh-pages
+        uses: actions/checkout@v4
         continue-on-error: true
-        run: |
-          echo "Attempting to checkout gh-pages branch for history..."
-          if git ls-remote --heads origin gh-pages | grep -q gh-pages; then
-            echo "gh-pages branch exists, checking out..."
-            git clone --single-branch --branch gh-pages https://github.com/${{ github.repository }}.git gh-pages
-            echo "checkout-success=true" >> $GITHUB_OUTPUT
-          else
-            echo "gh-pages branch does not exist yet (first deployment)"
-            echo "checkout-success=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Restore previous history
-        run: |
-          if [ "${{ steps.checkout-gh-pages.outputs.checkout-success }}" = "true" ]; then
-            echo "Restoring history from existing gh-pages branch..."
-            if [ -d gh-pages/history ]; then
-              echo "Restoring previous Allure history (history folder)..."
-              mkdir -p allure-history
-              cp -r gh-pages/history allure-history/
-            fi
-            if [ -d gh-pages/last-history ]; then
-              echo "Restoring previous Allure last-history snapshot..."
-              mkdir -p allure-history/last-history
-              cp -r gh-pages/last-history/. allure-history/last-history/
-            fi
-          else
-            echo "No previous history available (first deployment). Initializing empty history..."
-            mkdir -p allure-history
-          fi
+        with:
+          ref: gh-pages
+          path: gh-pages
 
       - name: Inject custom categories
         run: |
@@ -119,35 +93,29 @@ jobs:
             echo "No external categories.json found"
           fi
 
-      - name: Prepare for first-time history generation
+      - name: Debug available history
         run: |
-          echo "Ensuring allure-history directory structure..."
-          mkdir -p allure-history
-          if [ ! -f allure-history/history.json ] && [ ! -d allure-history/history ]; then
-            echo "First-time setup: creating initial history structure"
-            # Simple-elf action will create proper history on first run
-          fi
-
-      - name: Debug restored history
-        run: |
-          echo '--- Restored history (before generation) ---'
-          if [ -d allure-history/history ]; then
-            find allure-history/history -maxdepth 1 -type f -print
-            cat allure-history/history/history.json 2>/dev/null || true
+          echo '--- Available gh-pages content ---'
+          if [ -d gh-pages ]; then
+            ls -la gh-pages/ || true
+            if [ -d gh-pages/last-history ]; then
+              echo 'last-history directory exists:'
+              ls -la gh-pages/last-history/ || true
+            else
+              echo 'No last-history directory found'
+            fi
           else
-            echo 'No history directory yet'
+            echo 'No gh-pages directory (first run)'
           fi
-          echo '--- Existing version folders (before) ---'
-          ls -1 allure-history 2>/dev/null || true
 
       - name: Generate Allure report (with history)
         uses: simple-elf/allure-report-action@v1.7
         with:
           allure_results: allure-results
+          allure_report: allure-report
+          gh_pages: gh-pages
           allure_history: allure-history
           keep_reports: 20
-        env:
-          ALLURE_GENERATE_HISTORY: 'true'
 
       - name: Debug new history
         run: |
