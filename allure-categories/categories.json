@@ -1,0 +1,6 @@
+[
+  { "name": "Product Defects", "matchedStatuses": ["failed"], "messageRegex": "AssertionError|Expected .*" },
+  { "name": "Infrastructure Issues", "matchedStatuses": ["broken"], "messageRegex": "ECONNREFUSED|ENOTFOUND|Timeout|ECONNRESET" },
+  { "name": "Flaky Tests", "matchedStatuses": ["failed"], "traceRegex": "(detached|timeout|not reachable|not visible)" },
+  { "name": "Assertion Mismatch", "matchedStatuses": ["failed"], "messageRegex": "(toBe|toEqual|toContain)" }
+]

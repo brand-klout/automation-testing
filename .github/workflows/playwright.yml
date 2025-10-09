@@ -95,13 +95,21 @@ jobs:
 
       - name: Inject custom categories
         run: |
-          cat > allure-results/categories.json <<'EOF'
-          [
-            { "name": "Product Defects", "matchedStatuses": ["failed"], "messageRegex": "AssertionError|Expected .*" },
-            { "name": "Infrastructure Issues", "matchedStatuses": ["broken"], "messageRegex": "ECONNREFUSED|ENOTFOUND|Timeout" },
-            { "name": "Flaky Tests", "matchedStatuses": ["failed"], "traceRegex": "(detached|timeout|not reachable)" }
-          ]
-          EOF
+          if [ -f allure-categories/categories.json ]; then
+            cp allure-categories/categories.json allure-results/categories.json
+            echo "Injected categories.json"
+          else
+            echo "No external categories.json found"; fi
+
+      - name: Debug restored history
+        run: |
+          echo '--- Restored history (before generation) ---'
+          if [ -d allure-history/history ]; then
+            find allure-history/history -maxdepth 1 -type f -print
+            cat allure-history/history/history.json 2>/dev/null || true
+          else
+            echo 'No history directory yet'
+          fi
 
       - name: Generate Allure report (with history)
         uses: simple-elf/allure-report-action@v1.7
@@ -109,6 +117,17 @@ jobs:
           allure_results: allure-results
           allure_history: allure-history
           keep_reports: 20
+
+      - name: Debug new history
+        run: |
+          echo '--- New history (after generation) ---'
+            if [ -d allure-history/history ]; then
+              ls -l allure-history/history || true
+              echo 'history.json snippet:'
+              head -n 50 allure-history/history/history.json 2>/dev/null || true
+            else
+              echo 'Generation produced no history directory'
+            fi
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
