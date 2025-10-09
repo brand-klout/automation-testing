@@ -1,6 +1,6 @@
-# BlockKlout Automation Testing
+# BrandKlout Automation Testing
 
-Internal E2E testing framework for BlockKlout using Playwright + BDD.
+Internal E2E testing framework for BrandKlout using Playwright + BDD.
 
 ## Quick Start
 
@@ -41,7 +41,7 @@ Copy `.env.example` to `.env` and adjust settings if needed.
 
 ### BDD 语法示例
 ```gherkin
-Feature: BlockKlout Core Testing
+Feature: BrandKlout Core Testing
   @api @smoke
   Scenario: API health check
     When I send a GET request to "/users"
@@ -142,12 +142,12 @@ automation-testing/
 
 ---
 
-**BlockKlout 自动化测试** - 通过 Allure 报告实现持续质量监控 📊
+**BrandKlout 自动化测试** - 通过 Allure 报告实现持续质量监控 📊
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+ 
+     **BrandKlout Automation Testing** - Ensuring quality through comprehensive E2E testing 🚀
 - npm or yarn
 
 ### Installation & Setup
@@ -297,12 +297,12 @@ Write test scenarios in natural language using Gherkin syntax:
 ```gherkin
 # features/user-login.feature
 Feature: User Authentication
-  As a BlockKlout user
+  As a BrandKlout user
   I want to log into my account
   So that I can access platform features
 
   Background:
-    Given the BlockKlout application is available
+  Given the BrandKlout application is available
 
   @ui @smoke
   Scenario: Successful login with valid credentials
@@ -400,7 +400,7 @@ npm run trace
 
 ## 📄 License
 
-MIT License - see `LICENSE` file for details.
+Internal proprietary testing assets. All rights reserved. Not for external distribution.
 
 ## 🤝 Contributing
 
@@ -419,7 +419,7 @@ For questions or issues:
 
 ---
 
-**BlockKlout Automation Testing** - Ensuring quality through comprehensive E2E testing 🚀
+**BrandKlout Automation Testing** - Ensuring quality through comprehensive E2E testing 🚀
 
 
 

@@ -1,7 +1,7 @@
 {
-  "name": "blockklout-automation-testing",
+  "name": "brandklout-automation-testing",
   "version": "1.0.0",
-  "description": "BlockKlout E2E testing automation with Playwright and BDD",
+  "description": "BrandKlout E2E testing automation with Playwright and BDD",
   "scripts": {
     "test": "playwright test",
     "test:api": "playwright test --project=api-tests",
@@ -16,7 +16,7 @@
     "install-browsers": "playwright install"
   },
   "keywords": [
-    "blockklout",
+  "brandklout",
     "playwright",
     "e2e",
     "testing",
@@ -24,8 +24,8 @@
     "web",
     "bdd"
   ],
-  "author": "BlockKlout Team",
-  "license": "MIT",
+  "author": "BrandKlout Team",
+  "license": "UNLICENSED",
   "devDependencies": {
     "@playwright/test": "^1.40.0",
     "@types/node": "^20.0.0",

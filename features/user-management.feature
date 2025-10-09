@@ -1,10 +1,10 @@
-Feature: BlockKlout Core Testing
-  As a BlockKlout platform user
+Feature: BrandKlout Core Testing
+  As a BrandKlout platform user
   I want to verify the system functionality
   So that I can ensure quality and reliability
 
   Background:
-    Given the BlockKlout platform is available
+  Given the BrandKlout platform is available
 
   # API Tests
   @api @smoke
@@ -15,7 +15,7 @@ Feature: BlockKlout Core Testing
 
   @api
   Scenario: Create user via API
-    Given I have a new user with email "test@blockklout.com"
+  Given I have a new user with email "test@brandklout.com"
     When I send a POST request to "/users" with the user data
     Then the response status should be 201
     And the response should contain the user ID
@@ -31,7 +31,7 @@ Feature: BlockKlout Core Testing
   Scenario: Navigation functionality
     Given I am on the homepage
     Then I should see the "Docs" link
-    And I should see the BlockKlout logo
+  And I should see the BrandKlout logo
 
   # Integration Test
   @api @ui @smoke

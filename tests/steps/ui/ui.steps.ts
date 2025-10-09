@@ -23,7 +23,7 @@ Then('I should see the {string} button', async ({ homePage, page }, buttonName: 
   }
 });
 
-Then('I should see the BlockKlout logo', async ({ homePage }) => {
+Then('I should see the BrandKlout logo', async ({ homePage }) => {
   await expect(homePage.logo).toBeVisible();
 });
 
