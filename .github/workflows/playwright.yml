@@ -140,6 +140,16 @@ jobs:
             echo "File count: $(find allure-history -type f | wc -l)"
           fi
 
+      - name: Clean deployment directory
+        run: |
+          # Remove .git directory if it exists to prevent permission issues
+          if [ -d allure-history/.git ]; then
+            echo "Removing .git directory from allure-history"
+            rm -rf allure-history/.git || sudo rm -rf allure-history/.git
+          fi
+          # Ensure proper permissions
+          chmod -R 755 allure-history 2>/dev/null || true
+
       - name: Deploy to GitHub Pages
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: peaceiris/actions-gh-pages@v3
@@ -148,6 +158,8 @@ jobs:
           publish_dir: allure-history
           enable_jekyll: false
           force_orphan: true
+          allow_empty_commit: true
+          exclude_assets: '.git'
           user_name: 'github-actions[bot]'
           user_email: 'github-actions[bot]@users.noreply.github.com'
           commit_message: 'Deploy Allure report ${{ github.run_number }}'
