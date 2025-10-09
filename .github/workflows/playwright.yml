@@ -103,25 +103,26 @@ jobs:
           name: allure-results
           path: allure-results
 
-      - name: Checkout gh-pages for history (if exists)
+      - name: Download previous history (if exists)
         continue-on-error: true
         run: |
-          echo "Attempting to fetch gh-pages history for trend data..."
-          # Try to fetch gh-pages history from GitHub API
-          curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-               -H "Accept: application/vnd.github.v3+json" \
-               "https://api.github.com/repos/${{ github.repository }}/contents/last-history" \
-               -o /tmp/last-history.json || echo "No previous history found"
+          echo "Attempting to download previous Allure history..."
           
-          # If we got history, extract and use it
-          if [ -f /tmp/last-history.json ] && grep -q "content" /tmp/last-history.json; then
-            echo "Found previous history, setting up for trend generation..."
-            mkdir -p allure-history/history
-            # Extract base64 content and decode (simplified approach)
-            echo "History data will be used for trends"
-          else
-            echo "First deployment - starting fresh history"
-          fi
+          # Create history directory
+          mkdir -p allure-results/history
+          
+          # Try to download previous history files from deployed site
+          base_url="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+          
+          # Download history files if they exist
+          for file in history.json history-trend.json duration-trend.json retry-trend.json; do
+            echo "Downloading history/$file..."
+            curl -f -s "$base_url/history/$file" -o "allure-results/history/$file" || echo "No previous $file found"
+          done
+          
+          # List what we got
+          echo "Downloaded history files:"
+          ls -la allure-results/history/ || echo "No history files downloaded"
 
       - name: Inject custom categories
         run: |
@@ -159,17 +160,35 @@ jobs:
           echo "Generating Allure report with history tracking..."
           mkdir -p allure-report allure-history
           
-          # Generate the main report
+          # Generate the main report (this creates history automatically)
           allure generate allure-results --clean -o allure-report
           
           # Copy report to current deployment
           cp -r allure-report/* allure-history/
           
-          # Create version-specific directory for history
+          # Ensure history directory exists in deployment
+          mkdir -p allure-history/history
+          
+          # Copy generated history files to deployment
+          if [ -d allure-report/history ]; then
+            echo "Copying generated history files..."
+            cp -r allure-report/history/* allure-history/history/
+            ls -la allure-history/history/
+          else
+            echo "No history generated (first run or no previous data)"
+          fi
+          
+          # Create version-specific directory for archival
           mkdir -p "allure-history/${{ github.run_number }}"
           cp -r allure-report/* "allure-history/${{ github.run_number }}/"
           
-          # Create a simple history index
+          echo "Report generated successfully with history"
+          echo "Generated files in allure-history:"
+          find allure-history -name "*.json" | head -10
+
+      - name: Create history index page
+        run: |
+          # Create enhanced history index with trend information
           cat > allure-history/index.html << 'EOF'
           <!DOCTYPE html>
           <html>
@@ -181,28 +200,40 @@ jobs:
                 body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
                 .report-link { display: inline-block; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin: 10px 0; }
                 .report-link:hover { background: #0056b3; }
+                .trend-link { background: #28a745; }
+                .trend-link:hover { background: #1e7e34; }
+                .highlight { background: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0; }
               </style>
           </head>
           <body>
               <h1>🚀 BrandKlout Automation Test Reports</h1>
-              <h2>Latest Report</h2>
-              <p><a href="./${{ github.run_number }}/index.html" class="report-link">📊 View Run #${{ github.run_number }} Report</a></p>
+              
+              <div class="highlight">
+                <h3>📈 查看执行趋势变化 (View Execution Trends)</h3>
+                <p>在最新报告中点击左侧导航栏的 "Trend" 可以查看测试执行的趋势变化。</p>
+                <p>Click "Trend" in the left navigation of the latest report to view test execution trend changes.</p>
+              </div>
+              
+              <h2>Latest Report with Trends</h2>
+              <p><a href="./index.html" class="report-link trend-link">📊 View Latest Report (Run #${{ github.run_number }})</a></p>
+              
               <h2>Report Information</h2>
               <ul>
                   <li><strong>Run Number:</strong> ${{ github.run_number }}</li>
                   <li><strong>Generated:</strong> $(date)</li>
                   <li><strong>Repository:</strong> ${{ github.repository }}</li>
+                  <li><strong>Trend Data:</strong> Available in main report</li>
               </ul>
-              <p><small>This page will be updated with each test run. Bookmark this page to always access the latest results.</small></p>
+              
+              <h3>Historical Reports Archive</h3>
+              <p><a href="./${{ github.run_number }}/index.html" class="report-link">📁 Archived Run #${{ github.run_number }}</a></p>
+              
+              <p><small>Trend data accumulates with each test run. The "Trend" section shows historical pass/fail rates, duration changes, and retry patterns.</small></p>
           </body>
           </html>
           EOF
           
-          # Save history metadata for future runs
-          echo '{"lastRun": ${{ github.run_number }}, "totalRuns": 1}' > allure-history/last-history.json
-          
-          echo "Report generated successfully"
-          ls -la allure-history/
+          echo "Created history index page"
 
       - name: Debug deployment content
         run: |
