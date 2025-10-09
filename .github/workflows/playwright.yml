@@ -151,22 +151,34 @@ jobs:
             cp -r allure-report/history/* allure-history/history/
           fi
           
-          # Create archive copy with run number
+          # Create archive copy with run number and preserve history metadata
           mkdir -p "allure-history/archive/${{ github.run_number }}"
           cp -r allure-report/* "allure-history/archive/${{ github.run_number }}/"
+          
+          # Create a simple history index file
+          echo "Creating history metadata for easier navigation..."
+          echo "${{ github.run_number }},$(date -u '+%Y-%m-%d %H:%M UTC'),${{ github.sha }}" >> allure-history/runs-history.csv
 
       - name: Create enhanced dashboard with history navigation
         run: |
-          # Generate list of all previous runs with better formatting
+          # Download existing history metadata if available
+          base_url="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
+          curl -f -s "$base_url/runs-history.csv" -o "existing-history.csv" || echo "run_number,date,commit" > existing-history.csv
+          
+          # Merge existing history with current run (avoid duplicates)
+          current_run_entry="${{ github.run_number }},$(date -u '+%Y-%m-%d %H:%M UTC'),${{ github.sha }}"
+          
+          # Create merged history, removing any existing entry for current run
+          cat existing-history.csv | grep -v "^${{ github.run_number }}," > allure-history/runs-history.csv || echo "run_number,date,commit" > allure-history/runs-history.csv
+          echo "$current_run_entry" >> allure-history/runs-history.csv
+          
+          # Generate archive rows from history file
           archive_rows=""
-          if [ -d "allure-history/archive" ]; then
-            for run_dir in allure-history/archive/*/; do
-              if [ -d "$run_dir" ]; then
-                run_num=$(basename "$run_dir")
-                archive_rows="$archive_rows<tr><td><a href=\"./archive/$run_num/index.html\" class=\"btn btn-sm\">🔗 Run #$run_num</a></td><td>Complete test report for run $run_num</td><td>\$(date -d '1 hour ago' '+%Y-%m-%d %H:%M')</td></tr>"
-              fi
-            done
-          fi
+          while IFS=',' read -r run_num date_str commit_sha; do
+            if [ "$run_num" != "run_number" ] && [ ! -z "$run_num" ]; then
+              archive_rows="$archive_rows<tr><td><a href=\"./archive/$run_num/index.html\" class=\"btn btn-sm\">🔗 Run #$run_num</a></td><td>Complete test report for run $run_num</td><td>$date_str</td></tr>"
+            fi
+          done < allure-history/runs-history.csv
           
           # Create comprehensive dashboard
           cat > allure-history/dashboard.html << EOF
