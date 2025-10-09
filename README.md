@@ -1,6 +1,6 @@
 ## BrandKlout Automation Testing
 
-Internal end-to-end (E2E) and BDD test suite built with Playwright.
+Minimal internal Playwright + BDD (Gherkin) suite for API and UI validation.
 
 ### 1. Quick Start
 ```bash
