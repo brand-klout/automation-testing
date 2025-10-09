@@ -1,42 +1,36 @@
 {
-  "name": "playwright-demo",
+  "name": "blockklout-automation-testing",
   "version": "1.0.0",
-  "description": "Playwright E2E testing demo for web applications",
+  "description": "BlockKlout E2E testing automation with Playwright and BDD",
   "scripts": {
     "test": "playwright test",
     "test:api": "playwright test --project=api-tests",
     "test:ui": "playwright test --project=ui-tests",
-    "test:dual": "playwright test --grep '@api' --grep '@ui'",
     "bdd": "bddgen && playwright test",
     "bdd:gen": "bddgen",
     "bdd:api": "bddgen && playwright test --project=api-tests",
     "bdd:ui": "bddgen && playwright test --project=ui-tests",
     "bdd:debug": "bddgen && playwright test --debug",
     "bdd:headed": "bddgen && playwright test --headed",
-    "report": "playwright show-report",
-    "trace": "playwright show-trace",
-    "install-browsers": "playwright install",
-    "allure:generate": "allure generate allure-results --clean -o allure-report",
-    "allure:open": "allure open allure-report",
-    "allure:serve": "allure serve allure-results"
+    "allure:serve": "allure serve allure-results",
+    "install-browsers": "playwright install"
   },
   "keywords": [
+    "blockklout",
     "playwright",
     "e2e",
     "testing",
     "automation",
-    "web"
+    "web",
+    "bdd"
   ],
-  "author": "",
+  "author": "BlockKlout Team",
   "license": "MIT",
   "devDependencies": {
     "@playwright/test": "^1.40.0",
     "@types/node": "^20.0.0",
     "playwright-bdd": "^7.0.0",
     "typescript": "^5.0.0",
-    "allure-commandline": "^2.29.0"
-  },
-  "optionalDependencies": {
     "allure-playwright": "^2.10.0"
   }
 }

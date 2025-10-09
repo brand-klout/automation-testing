@@ -32,7 +32,6 @@ When('I send a POST request to {string} with the user data', async ({ request, a
   });
   apiContext.status = apiContext.response.status();
   
-  // If creation is successful, get response data
   if (apiContext.status === 201) {
     try {
       const responseData = await apiContext.response.json();

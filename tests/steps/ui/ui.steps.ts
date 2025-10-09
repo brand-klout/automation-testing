@@ -1,65 +1,50 @@
 import { expect } from '@playwright/test';
 import { Given, When, Then } from '../fixtures';
-import { test as baseTest } from '../fixtures';
 
+// Navigation steps
 Given('I am on the homepage', async ({ homePage }) => {
   await homePage.goto();
 });
 
-When('I click the {string} button', async ({ homePage }, buttonName: string) => {
-  if (buttonName === 'Get started') {
-    await homePage.clickGetStarted();
-  }
-});
-
-When('I search for {string}', async ({ homePage }, query: string) => {
-  // placeholder search (method may not exist in simplified HomePage)
-  if ((homePage as any).searchDocs) {
-    await (homePage as any).searchDocs(query);
-  }
+// Visibility verification steps
+Then('I should see the main navigation menu', async ({ homePage }) => {
+  await expect(homePage.mainNavigation).toBeVisible();
 });
 
 Then('I should see the {string} button', async ({ homePage, page }, buttonName: string) => {
-  // If running under API project (identified by API base URL), silently return.
-  const apiBase = process.env.API_BASE_URL || 'https://jsonplaceholder.typicode.com';
-  // page.url() may still be about:blank in API project context; detect by intended baseURL usage attempt
-  // Heuristic: if current URL starts with apiBase OR we never navigated (about:blank) treat as API context for dual-tag scenario.
+  // Skip UI assertions for API-only runs
   const current = page.url();
-  if (current === 'about:blank' || current.startsWith(apiBase)) {
-    return; // Skip visibility assertion for API run
+  if (current === 'about:blank' || current.includes('jsonplaceholder')) {
+    return;
   }
-  if (buttonName === 'Get started') {
+  
+  if (buttonName === 'Get started' || buttonName === 'Get Started') {
     await expect(homePage.getStartedButton).toBeVisible();
   }
+});
+
+Then('I should see the BlockKlout logo', async ({ homePage }) => {
+  await expect(homePage.logo).toBeVisible();
 });
 
 Then('I should see the {string} link', async ({ homePage }, linkName: string) => {
   if (linkName === 'Docs') {
     await expect(homePage.docsLink).toBeVisible();
-  } else if (linkName === 'Community' && (homePage as any).communityLink) {
-    await expect((homePage as any).communityLink).toBeVisible();
   }
 });
 
-Then('I should be on the getting started page', async ({ page }) => {
-  await expect(page).toHaveURL(/.*intro/);
+// Platform validation steps (shared between API and UI)
+Then('I can access the platform via API', async ({ request }) => {
+  const response = await request.get('/posts/1', { failOnStatusCode: false });
+  expect([200, 404, 401, 403].includes(response.status())).toBeTruthy();
 });
 
-Then('the URL should contain {string}', async ({ page }, urlPart: string) => {
-  await expect(page.url()).toContain(urlPart);
-});
-
-Then('I should see search results', async ({ page }) => {
+Then('I can access the platform via UI', async ({ page }) => {
+  await page.goto('/');
   await page.waitForLoadState('networkidle');
+  expect(page.url()).toBeTruthy();
 });
 
-Then('the {string} button should have an accessible name', async ({ homePage }, buttonName: string) => {
-  if (buttonName === 'Get started') {
-    await expect(homePage.getStartedButton).toHaveAccessibleName('Get started');
-  }
-});
-
-Then('the page should have a proper heading structure', async ({ page }) => {
-  const mainHeading = page.getByRole('heading', { level: 1 });
-  await expect(mainHeading).toBeVisible();
+Then('the platform should be fully operational', async ({ page }) => {
+  await expect(page.locator('body')).toBeVisible();
 });

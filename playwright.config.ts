@@ -19,8 +19,16 @@ export default defineConfig({
   globalTimeout: process.env.CI ? 10 * 60 * 1000 : undefined, // 10 minutes on CI
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
-    ['html'],
-    ['allure-playwright', { outputFolder: 'allure-results', detail: true, suiteTitle: false }],
+    ['allure-playwright', { 
+      outputFolder: 'allure-results', 
+      detail: true, 
+      suiteTitle: false,
+      environmentInfo: {
+        'Project': 'BlockKlout',
+        'Test Environment': process.env.NODE_ENV || 'test',
+        'Browser': 'Chrome'
+      }
+    }],
   ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
@@ -43,6 +51,7 @@ export default defineConfig({
   features: 'features/*.feature', // Unified feature directory (root-level only)
         steps: [
           'tests/steps/fixtures.ts',      // shared fixtures & test instance
+          'tests/steps/shared/**/*.ts',   // shared background steps
           'tests/steps/ui/**/*.ts',       // UI steps
           'tests/steps/api/**/*.ts',      // API steps (ignored at runtime via grep)
         ],
@@ -63,6 +72,7 @@ export default defineConfig({
   features: 'features/*.feature', // Unified feature directory (root-level only)
         steps: [
           'tests/steps/fixtures.ts',     // shared fixtures & test instance
+          'tests/steps/shared/**/*.ts',  // shared background steps
           'tests/steps/api/**/*.ts',     // API step definitions
           'tests/steps/ui/**/*.ts',      // UI steps (ignored at runtime via grep)
         ],
