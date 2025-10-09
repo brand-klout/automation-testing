@@ -19,14 +19,16 @@ export default defineConfig({
   globalTimeout: process.env.CI ? 10 * 60 * 1000 : undefined, // 10 minutes on CI
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
+    ['list'],
     ['allure-playwright', { 
       outputFolder: 'allure-results', 
       detail: true, 
-      suiteTitle: false,
+      suiteTitle: true,
       environmentInfo: {
-        'Project': 'BlockKlout',
+        'Project': 'BrandKlout',
         'Test Environment': process.env.NODE_ENV || 'test',
-        'Browser': 'Chrome'
+        'Browser': 'Chrome',
+        'Execution Context': process.env.CI ? 'CI/CD' : 'Local'
       }
     }],
   ],
