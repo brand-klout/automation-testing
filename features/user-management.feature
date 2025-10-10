@@ -20,6 +20,12 @@ Feature: BrandKlout Core Testing
     Then the response status should be 201
     And the response should contain the user ID
 
+  @api
+  Scenario: Flaky API endpoint test (for trend demonstration)
+    When I send a GET request to "/posts/1"
+    Then the response status should be 200
+    And the response should have content
+
   # UI Tests
   @ui
   Scenario: Homepage accessibility
@@ -32,6 +38,13 @@ Feature: BrandKlout Core Testing
     Given I am on the homepage
     Then I should see the "Docs" link
   And I should see the BrandKlout logo
+
+  @ui
+  Scenario: Performance-sensitive test (for trend variation)
+    Given I am on the homepage
+    When I wait for page load
+    Then the page should load within reasonable time
+    And all elements should be visible
 
   # Integration Test
   @api @ui

@@ -23,7 +23,7 @@ const commonBddConfig = {
 export default defineConfig({
   fullyParallel: true,
   forbidOnly: CI,
-  retries: CI ? 2 : 0,
+  retries: CI ? 2 : 1, // Enable retries in both CI and local for trend data
   workers: CI ? 1 : undefined,
   timeout: 30000,
   globalTimeout: CI ? 600_000 : undefined, // 10 minutes on CI

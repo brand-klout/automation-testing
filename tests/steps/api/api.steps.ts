@@ -25,6 +25,24 @@ When('I send a GET request to {string}', async ({ request, apiContext }, endpoin
   }
 });
 
+// New step for trend data variation
+Then('the response should have content', async ({ apiContext }) => {
+  expect(apiContext.response).toBeTruthy();
+  expect(apiContext.status).toBe(200);
+  
+  if (apiContext.response) {
+    const responseData = await apiContext.response.json();
+    expect(responseData).toBeTruthy();
+    expect(Object.keys(responseData).length).toBeGreaterThan(0);
+  }
+  
+  // Add some randomness for trend variation (simulate occasional issues)
+  const randomFactor = Math.random();
+  if (randomFactor < 0.1) { // 10% chance to simulate a slow response
+    await new Promise(resolve => setTimeout(resolve, 2000));
+  }
+});
+
 When('I send a POST request to {string} with the user data', async ({ request, apiContext }, endpoint: string) => {
   apiContext.endpoint = endpoint;
   apiContext.response = await request.post(endpoint, {
