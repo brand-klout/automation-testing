@@ -72,6 +72,11 @@ To update the access codes:
 
 **Direct Auth Page**: https://brand-klout.github.io/automation-testing/auth.html
 
+**Note**: The main entry point will automatically redirect to the authentication page. If you experience any issues accessing the site, try:
+1. Using the direct auth page URL above
+2. Clearing your browser cache (Ctrl+F5 or Cmd+Shift+R)
+3. Trying a different browser or incognito mode
+
 ## Configuration Options
 
 ### Session Duration
