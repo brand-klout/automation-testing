@@ -185,6 +185,13 @@ jobs:
           mkdir -p "allure-history/archive/${{ github.run_number }}"
           cp -r allure-report/* "allure-history/archive/${{ github.run_number }}/"
           
+          # Ensure archive has proper index for direct access
+          if [ -f "allure-history/archive/${{ github.run_number }}/index.html" ]; then
+            echo "Archive index.html created successfully for run ${{ github.run_number }}"
+          else
+            echo "Warning: No index.html found in archive for run ${{ github.run_number }}"
+          fi
+          
           # Create a simple history index file
           echo "Creating history metadata for easier navigation..."
           echo "${{ github.run_number }},$(date -u '+%Y-%m-%d %H:%M UTC'),${{ github.sha }}" >> allure-history/runs-history.csv
@@ -256,6 +263,8 @@ jobs:
                 .instructions h4 { color: #0c5460; margin-top: 0; }
                 .quick-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
                 .stat { background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #dee2e6; }
+                .stat.clickable { cursor: pointer; transition: all 0.3s ease; }
+                .stat.clickable:hover { background: #e9ecef; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); border-color: #3498db; }
                 .stat-value { font-size: 1.8em; font-weight: bold; color: #2c3e50; }
                 .stat-label { color: #7f8c8d; font-size: 0.9em; margin-top: 5px; }
                 .auth-notice { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px 20px; border-radius: 8px; margin: 20px 0; text-align: center; }
@@ -272,8 +281,8 @@ jobs:
                   </div>
                   
                   <div class="main-actions">
-                      <a href="./index.html" class="btn primary">📊 Latest Allure Report (Run #${{ github.run_number }})</a>
-                      <a href="./archive/${{ github.run_number }}/index.html" class="btn secondary">📁 Archived Version</a>
+                      <a href="./allure-index.html" class="btn primary">📊 Latest Allure Report (Run #${{ github.run_number }})</a>
+                      <a href="./archive/${{ github.run_number }}/index.html" class="btn secondary">📁 Current Run Archive</a>
                       <a href="https://github.com/${{ github.repository }}/actions" class="btn secondary">⚙️ CI/CD Pipeline</a>
                   </div>
                   
@@ -313,11 +322,11 @@ jobs:
                       <div class="card info">
                           <h3>📋 Current Run Info</h3>
                           <div class="quick-stats">
-                              <div class="stat">
+                              <div class="stat clickable" onclick="window.open('https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}', '_blank')">
                                   <div class="stat-value">#${{ github.run_number }}</div>
                                   <div class="stat-label">Run Number</div>
                               </div>
-                              <div class="stat">
+                              <div class="stat clickable" onclick="window.location.href='./allure-index.html'">
                                   <div class="stat-value">✅</div>
                                   <div class="stat-label">Trend Data</div>
                               </div>
