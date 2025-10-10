@@ -55,9 +55,12 @@
         const currentPath = window.location.pathname;
         let authPath = AUTH_PAGE;
         
+        // Check if auth.html exists in current directory (for archive directories)
+        const testAuthPath = new URL('auth.html', window.location.href);
+        
+        // For archive directories, auth.html should be in the same directory
         if (currentPath.includes('/archive/')) {
-            // We're in an archive subdirectory, need to go up two levels
-            authPath = '../../' + AUTH_PAGE;
+            authPath = 'auth.html';  // Same directory
         } else if (currentPath.includes('/')) {
             // We might be in a subdirectory, go up one level
             const pathDepth = (currentPath.match(/\//g) || []).length;

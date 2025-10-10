@@ -262,9 +262,15 @@ jobs:
           # Add favicon and authentication to archive index.html
           if [ -f "allure-history/archive/${{ github.run_number }}/index.html" ]; then
             echo "Adding favicon and authentication to archive index.html..."
-            # Add both favicon and auth protection to archive Allure report
-            sed -i 's|<head>|<head><script src="../../auth-guard.js"></script><link rel="icon" type="image/x-icon" href="https://cst.uat.brandklout.com/favicon.ico">|' "allure-history/archive/${{ github.run_number }}/index.html"
+            # Add both favicon and auth protection to archive Allure report (using local auth-guard.js)
+            sed -i 's|<head>|<head><script src="auth-guard.js"></script><link rel="icon" type="image/x-icon" href="https://cst.uat.brandklout.com/favicon.ico">|' "allure-history/archive/${{ github.run_number }}/index.html"
             echo "✅ Favicon and authentication added to archive index.html"
+            
+            # Copy auth files to archive directory for proper authentication flow
+            echo "Copying auth files to archive directory..."
+            cp auth/auth.html "allure-history/archive/${{ github.run_number }}/auth.html"
+            cp auth/auth-guard.js "allure-history/archive/${{ github.run_number }}/auth-guard.js"
+            echo "✅ Auth files copied to archive directory"
           else
             echo "❌ Warning: No index.html found in archive for run ${{ github.run_number }}"
           fi
@@ -295,12 +301,18 @@ jobs:
                 echo "  ✅ Downloaded archive index for run #$run_num"
                 
                 # Download essential JavaScript and CSS files
-                for file in app.js styles.css favicon.ico complete.js; do
+                for file in app.js styles.css favicon.ico complete.js main.js index.js; do
                   if curl -f -s "$base_url/archive/$run_num/$file" -o "$archive_dir/$file" 2>/dev/null; then
                     echo "    ✅ Downloaded $file"
                   else
                     echo "    ⚠️  Missing $file"
                   fi
+                done
+                
+                # Download static assets directory
+                mkdir -p "$archive_dir/static"
+                for static_file in app.js styles.css; do
+                  curl -f -s "$base_url/archive/$run_num/static/$static_file" -o "$archive_dir/static/$static_file" 2>/dev/null || true
                 done
                 
                 # Download plugins directory (critical for functionality)
@@ -311,12 +323,19 @@ jobs:
                 
                 # Download data directory (critical for content)
                 mkdir -p "$archive_dir/data"
-                for data_file in suites.json timeline.json graph.json history.json behaviors.json categories.json packages.json test-cases.json; do
+                for data_file in suites.json timeline.json graph.json history.json behaviors.json categories.json packages.json test-cases.json attachments.json environment.json; do
                   if curl -f -s "$base_url/archive/$run_num/data/$data_file" -o "$archive_dir/data/$data_file" 2>/dev/null; then
                     echo "    ✅ Downloaded data/$data_file"
                   else
                     echo "    ⚠️  Missing data/$data_file"
                   fi
+                done
+                
+                # Download attachments directory if it exists
+                mkdir -p "$archive_dir/data/attachments"
+                # Try to download common attachment file patterns
+                for ext in png jpg jpeg gif html txt json; do
+                  curl -f -s "$base_url/archive/$run_num/data/attachments/*.$ext" -o "$archive_dir/data/attachments/" 2>/dev/null || true
                 done
                 
                 # Download widgets directory (for overview panels)
@@ -339,11 +358,17 @@ jobs:
                     echo "  🔒 Adding authentication to archive #$run_num"
                     # Check if auth protection already exists to avoid duplicate injection
                     if ! grep -q "auth-guard.js" "$archive_dir/index.html"; then
-                      sed -i 's|<head>|<head><script src="../../auth-guard.js"></script>|' "$archive_dir/index.html"
+                      sed -i 's|<head>|<head><script src="auth-guard.js"></script>|' "$archive_dir/index.html"
                       echo "  ✅ Authentication added to archive #$run_num"
                     else
                       echo "  ✅ Authentication already present in archive #$run_num"
                     fi
+                    
+                    # Copy auth files to archive directory for proper authentication flow
+                    echo "  📁 Copying auth files to archive #$run_num"
+                    cp auth/auth.html "$archive_dir/auth.html"
+                    cp auth/auth-guard.js "$archive_dir/auth-guard.js"
+                    echo "  ✅ Auth files copied to archive #$run_num"
                   fi
                 else
                   echo "  ⚠️  Archive for run #$run_num may be incomplete (missing critical files)"

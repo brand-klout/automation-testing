@@ -187,7 +187,18 @@
             'BK@123',      // Main access code (case-sensitive)
         ];
         
-        const REDIRECT_URL = 'dashboard.html'; // Where to redirect after successful auth
+        // Smart redirect URL based on current location
+        function getRedirectUrl() {
+            const currentPath = window.location.pathname;
+            if (currentPath.includes('/archive/')) {
+                // We're in an archive subdirectory, go back to root dashboard
+                return '../../dashboard.html';
+            } else {
+                // We're at root level
+                return 'dashboard.html';
+            }
+        }
+        
         const SESSION_DURATION = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
         
         // Check if already authenticated
@@ -200,7 +211,7 @@
                     
                     if (data.expires > now) {
                         // Still valid, redirect
-                        window.location.href = REDIRECT_URL;
+                        window.location.href = getRedirectUrl();
                         return;
                     } else {
                         // Expired, clear storage
@@ -276,7 +287,7 @@
                     showMessage('success', '✅ Authentication successful! Redirecting...');
                     
                     setTimeout(() => {
-                        window.location.href = REDIRECT_URL;
+                        window.location.href = getRedirectUrl();
                     }, 500);
                 } else {
                     setLoading(false);
