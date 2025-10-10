@@ -170,8 +170,8 @@ jobs:
             # Create backup
             cp allure-history/index.html allure-history/allure-index.html
             
-            # Add auth guard to Allure index.html after head tag
-            sed 's|<head>|<head><script src="auth-guard.js"></script>|' allure-history/allure-index.html > allure-history/temp-index.html
+            # Add auth guard and favicon to Allure index.html after head tag
+            sed 's|<head>|<head><script src="auth-guard.js"></script><link rel="icon" type="image/x-icon" href="https://cst.uat.brandklout.com/favicon.ico">|' allure-history/allure-index.html > allure-history/temp-index.html
             mv allure-history/temp-index.html allure-history/allure-index.html
           fi
           
@@ -185,9 +185,12 @@ jobs:
           mkdir -p "allure-history/archive/${{ github.run_number }}"
           cp -r allure-report/* "allure-history/archive/${{ github.run_number }}/"
           
-          # Ensure archive has proper index for direct access
+          # Add favicon to archive index.html
           if [ -f "allure-history/archive/${{ github.run_number }}/index.html" ]; then
             echo "Archive index.html created successfully for run ${{ github.run_number }}"
+            # Add favicon to archive Allure report
+            sed -i 's|<head>|<head><link rel="icon" type="image/x-icon" href="https://cst.uat.brandklout.com/favicon.ico">|' "allure-history/archive/${{ github.run_number }}/index.html"
+            echo "Favicon added to archive index.html"
           else
             echo "Warning: No index.html found in archive for run ${{ github.run_number }}"
           fi
@@ -236,6 +239,7 @@ jobs:
               <title>BrandKlout Test Reports Dashboard</title>
               <meta charset="utf-8">
               <meta name="viewport" content="width=device-width, initial-scale=1">
+              <link rel="icon" type="image/x-icon" href="https://cst.uat.brandklout.com/favicon.ico">
               <script src="auth-guard.js"></script>
               <style>
                 * { box-sizing: border-box; }
@@ -416,6 +420,7 @@ jobs:
               <meta charset="utf-8">
               <title>BrandKlout Test Reports</title>
               <meta http-equiv="refresh" content="3; url=auth.html">
+              <link rel="icon" type="image/x-icon" href="https://cst.uat.brandklout.com/favicon.ico">
               <style>
                 body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-align: center; padding: 100px 20px; margin: 0; }
                 .container { max-width: 600px; margin: 0 auto; }
@@ -451,6 +456,7 @@ jobs:
               <meta charset="utf-8">
               <title>BrandKlout Test Reports - Authentication Required</title>
               <meta http-equiv="refresh" content="0; url=auth.html">
+              <link rel="icon" type="image/x-icon" href="https://cst.uat.brandklout.com/favicon.ico">
               <script src="auth-guard.js"></script>
           </head>
           <body>
