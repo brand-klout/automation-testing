@@ -51,7 +51,22 @@
         const currentPage = window.location.pathname.split('/').pop() || 'index.html';
         sessionStorage.setItem('brandklout_return_page', currentPage);
         
-        window.location.href = AUTH_PAGE;
+        // Determine correct path to auth.html based on current location
+        const currentPath = window.location.pathname;
+        let authPath = AUTH_PAGE;
+        
+        if (currentPath.includes('/archive/')) {
+            // We're in an archive subdirectory, need to go up two levels
+            authPath = '../../' + AUTH_PAGE;
+        } else if (currentPath.includes('/')) {
+            // We might be in a subdirectory, go up one level
+            const pathDepth = (currentPath.match(/\//g) || []).length;
+            if (pathDepth > 1) {
+                authPath = '../' + AUTH_PAGE;
+            }
+        }
+        
+        window.location.href = authPath;
     }
     
     // Add logout functionality

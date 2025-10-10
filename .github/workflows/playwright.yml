@@ -259,12 +259,12 @@ jobs:
             find "$archive_path" -type f | head -10
           fi
           
-          # Add favicon to archive index.html
+          # Add favicon and authentication to archive index.html
           if [ -f "allure-history/archive/${{ github.run_number }}/index.html" ]; then
-            echo "Adding favicon to archive index.html..."
-            # Add favicon to archive Allure report
-            sed -i 's|<head>|<head><link rel="icon" type="image/x-icon" href="https://cst.uat.brandklout.com/favicon.ico">|' "allure-history/archive/${{ github.run_number }}/index.html"
-            echo "✅ Favicon added to archive index.html"
+            echo "Adding favicon and authentication to archive index.html..."
+            # Add both favicon and auth protection to archive Allure report
+            sed -i 's|<head>|<head><script src="../../auth-guard.js"></script><link rel="icon" type="image/x-icon" href="https://cst.uat.brandklout.com/favicon.ico">|' "allure-history/archive/${{ github.run_number }}/index.html"
+            echo "✅ Favicon and authentication added to archive index.html"
           else
             echo "❌ Warning: No index.html found in archive for run ${{ github.run_number }}"
           fi
@@ -333,6 +333,18 @@ jobs:
                 # Verify critical files exist
                 if [ -f "$archive_dir/data/suites.json" ] && [ -f "$archive_dir/app.js" ]; then
                   echo "  ✅ Archive for run #$run_num appears complete"
+                  
+                  # Add authentication protection to downloaded archive
+                  if [ -f "$archive_dir/index.html" ]; then
+                    echo "  🔒 Adding authentication to archive #$run_num"
+                    # Check if auth protection already exists to avoid duplicate injection
+                    if ! grep -q "auth-guard.js" "$archive_dir/index.html"; then
+                      sed -i 's|<head>|<head><script src="../../auth-guard.js"></script>|' "$archive_dir/index.html"
+                      echo "  ✅ Authentication added to archive #$run_num"
+                    else
+                      echo "  ✅ Authentication already present in archive #$run_num"
+                    fi
+                  fi
                 else
                   echo "  ⚠️  Archive for run #$run_num may be incomplete (missing critical files)"
                 fi
