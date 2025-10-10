@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BrandKlout Test Reports - Authentication</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        
+        .auth-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        
+        .logo {
+            font-size: 3em;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            margin-bottom: 10px;
+            font-size: 1.8em;
+        }
+        
+        .subtitle {
+            opacity: 0.8;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            opacity: 0.9;
+        }
+        
+        input[type="password"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        
+        input[type="password"]:focus {
+            background: white;
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 12px 20px;
+            background: linear-gradient(45deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .error {
+            background: rgba(231, 76, 60, 0.8);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-size: 14px;
+            display: none;
+        }
+        
+        .success {
+            background: rgba(46, 204, 113, 0.8);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-size: 14px;
+            display: none;
+        }
+        
+        .help-text {
+            margin-top: 20px;
+            font-size: 0.8em;
+            opacity: 0.7;
+            line-height: 1.4;
+        }
+        
+        .loading {
+            display: none;
+            margin-top: 15px;
+        }
+        
+        .spinner {
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 2px solid white;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="logo">🔐</div>
+        <h1>BrandKlout Test Reports</h1>
+        <p class="subtitle">Authentication Required</p>
+        
+        <form id="authForm">
+            <div class="form-group">
+                <label for="password">Access Code:</label>
+                <input type="password" id="password" name="password" required 
+                       placeholder="Enter access code" autocomplete="current-password">
+            </div>
+            
+            <button type="submit" class="btn">
+                <span id="btnText">🚀 Access Reports</span>
+                <div class="loading" id="loading">
+                    <span class="spinner"></span>Verifying...
+                </div>
+            </button>
+        </form>
+        
+        <div class="error" id="error"></div>
+        <div class="success" id="success"></div>
+        
+        <div class="help-text">
+            <p>📧 Contact your team administrator for access credentials</p>
+            <p>🔒 This page protects sensitive test data and reports</p>
+        </div>
+    </div>
+
+    <script>
+        // Configuration - You can modify these values
+        const ACCESS_CODES = [
+            'brandklout2024',      // Main access code
+            'test-reports-2024',   // Alternative code
+            'qa-team-access'       // QA team specific code
+        ];
+        
+        const REDIRECT_URL = 'dashboard.html'; // Where to redirect after successful auth
+        const SESSION_DURATION = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
+        
+        // Check if already authenticated
+        function checkExistingAuth() {
+            const authData = localStorage.getItem('brandklout_auth');
+            if (authData) {
+                try {
+                    const data = JSON.parse(authData);
+                    const now = new Date().getTime();
+                    
+                    if (data.expires > now) {
+                        // Still valid, redirect
+                        window.location.href = REDIRECT_URL;
+                        return;
+                    } else {
+                        // Expired, clear storage
+                        localStorage.removeItem('brandklout_auth');
+                    }
+                } catch (e) {
+                    localStorage.removeItem('brandklout_auth');
+                }
+            }
+        }
+        
+        // Set authentication
+        function setAuth() {
+            const expires = new Date().getTime() + SESSION_DURATION;
+            const authData = {
+                authenticated: true,
+                expires: expires,
+                timestamp: new Date().getTime()
+            };
+            localStorage.setItem('brandklout_auth', JSON.stringify(authData));
+        }
+        
+        // Show message
+        function showMessage(type, message) {
+            const errorEl = document.getElementById('error');
+            const successEl = document.getElementById('success');
+            
+            if (type === 'error') {
+                errorEl.textContent = message;
+                errorEl.style.display = 'block';
+                successEl.style.display = 'none';
+            } else {
+                successEl.textContent = message;
+                successEl.style.display = 'block';
+                errorEl.style.display = 'none';
+            }
+        }
+        
+        // Loading state
+        function setLoading(loading) {
+            const btnText = document.getElementById('btnText');
+            const loadingEl = document.getElementById('loading');
+            const btn = document.querySelector('.btn');
+            
+            if (loading) {
+                btnText.style.display = 'none';
+                loadingEl.style.display = 'inline-block';
+                btn.disabled = true;
+            } else {
+                btnText.style.display = 'inline';
+                loadingEl.style.display = 'none';
+                btn.disabled = false;
+            }
+        }
+        
+        // Handle form submission
+        document.getElementById('authForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const password = document.getElementById('password').value.trim();
+            
+            if (!password) {
+                showMessage('error', '❌ Please enter an access code');
+                return;
+            }
+            
+            setLoading(true);
+            
+            // Simulate network delay for security
+            setTimeout(() => {
+                if (ACCESS_CODES.includes(password.toLowerCase())) {
+                    setAuth();
+                    showMessage('success', '✅ Authentication successful! Redirecting...');
+                    
+                    setTimeout(() => {
+                        window.location.href = REDIRECT_URL;
+                    }, 1500);
+                } else {
+                    setLoading(false);
+                    showMessage('error', '❌ Invalid access code. Please try again.');
+                    document.getElementById('password').value = '';
+                    document.getElementById('password').focus();
+                }
+            }, 1000);
+        });
+        
+        // Check authentication on load
+        document.addEventListener('DOMContentLoaded', function() {
+            checkExistingAuth();
+            
+            // Focus password field
+            document.getElementById('password').focus();
+            
+            // Add enter key support
+            document.getElementById('password').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    document.getElementById('authForm').dispatchEvent(new Event('submit'));
+                }
+            });
+        });
+        
+        // Security: Clear auth on tab close
+        window.addEventListener('beforeunload', function() {
+            // Optional: Clear auth when tab closes (for extra security)
+            // localStorage.removeItem('brandklout_auth');
+        });
+        
+        // Security: Check auth periodically
+        setInterval(checkExistingAuth, 60000); // Check every minute
+    </script>
+</body>
+</html>

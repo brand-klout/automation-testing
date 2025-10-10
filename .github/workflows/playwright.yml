@@ -159,8 +159,21 @@ jobs:
           echo "Generated report structure:"
           ls -la allure-report/
           
-          # Copy main report to root of deployment
+          # Copy main report to root of deployment with auth protection
           cp -r allure-report/* allure-history/
+          
+          # Add authentication protection to Allure report pages
+          echo "Adding authentication protection to Allure report pages..."
+          
+          # Inject auth script into main Allure index.html
+          if [ -f allure-history/index.html ]; then
+            # Create backup
+            cp allure-history/index.html allure-history/allure-index.html
+            
+            # Add auth guard to Allure index.html after head tag
+            sed 's|<head>|<head><script src="auth-guard.js"></script>|' allure-history/allure-index.html > allure-history/temp-index.html
+            mv allure-history/temp-index.html allure-history/allure-index.html
+          fi
           
           # Preserve history for next run
           if [ -d allure-report/history ]; then
@@ -176,7 +189,7 @@ jobs:
           echo "Creating history metadata for easier navigation..."
           echo "${{ github.run_number }},$(date -u '+%Y-%m-%d %H:%M UTC'),${{ github.sha }}" >> allure-history/runs-history.csv
 
-      - name: Create enhanced dashboard with history navigation
+      - name: Create enhanced dashboard with history navigation and auth
         run: |
           # Download existing history metadata if available
           base_url="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
@@ -189,6 +202,10 @@ jobs:
           cat existing-history.csv | grep -v "^${{ github.run_number }}," > allure-history/runs-history.csv || echo "run_number,date,commit" > allure-history/runs-history.csv
           echo "$current_run_entry" >> allure-history/runs-history.csv
           
+          # Copy authentication files
+          cp auth-template.html allure-history/auth.html
+          cp auth-guard.js allure-history/auth-guard.js
+          
           # Generate archive rows from history file
           archive_rows=""
           while IFS=',' read -r run_num date_str commit_sha; do
@@ -197,7 +214,7 @@ jobs:
             fi
           done < allure-history/runs-history.csv
           
-          # Create comprehensive dashboard
+          # Create comprehensive dashboard with authentication
           cat > allure-history/dashboard.html << EOF
           <!DOCTYPE html>
           <html>
@@ -205,6 +222,7 @@ jobs:
               <title>BrandKlout Test Reports Dashboard</title>
               <meta charset="utf-8">
               <meta name="viewport" content="width=device-width, initial-scale=1">
+              <script src="auth-guard.js"></script>
               <style>
                 * { box-sizing: border-box; }
                 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background: #f5f7fa; color: #2c3e50; }
@@ -240,10 +258,14 @@ jobs:
                 .stat { background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #dee2e6; }
                 .stat-value { font-size: 1.8em; font-weight: bold; color: #2c3e50; }
                 .stat-label { color: #7f8c8d; font-size: 0.9em; margin-top: 5px; }
+                .auth-notice { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px 20px; border-radius: 8px; margin: 20px 0; text-align: center; }
               </style>
           </head>
           <body>
               <div class="container">
+                  <div class="auth-notice">
+                      🔐 <strong>Secure Access:</strong> This dashboard is protected by authentication. Session expires after 4 hours.
+                  </div>
                   <div class="header">
                       <h1>🚀 BrandKlout Testing Dashboard</h1>
                       <p>Comprehensive test automation with advanced trend analysis</p>
@@ -356,16 +378,16 @@ jobs:
           name: allure-reports
           path: ./allure-history
 
-      - name: Create index redirect to dashboard
+      - name: Create index redirect to authentication
         run: |
-          # Create a beautiful redirect from index to dashboard
+          # Create a beautiful redirect from index to auth
           cat > allure-history/welcome.html << 'EOF'
           <!DOCTYPE html>
           <html>
           <head>
               <meta charset="utf-8">
               <title>BrandKlout Test Reports</title>
-              <meta http-equiv="refresh" content="3; url=dashboard.html">
+              <meta http-equiv="refresh" content="3; url=auth.html">
               <style>
                 body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-align: center; padding: 100px 20px; margin: 0; }
                 .container { max-width: 600px; margin: 0 auto; }
@@ -373,17 +395,61 @@ jobs:
                 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
                 .btn { display: inline-block; background: rgba(255,255,255,0.2); color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 10px; backdrop-filter: blur(10px); }
                 .btn:hover { background: rgba(255,255,255,0.3); }
+                .security-notice { background: rgba(231, 76, 60, 0.1); border: 1px solid rgba(231, 76, 60, 0.3); border-radius: 8px; padding: 15px; margin: 20px 0; }
               </style>
           </head>
           <body>
               <div class="container">
-                  <h1 class="loading">🚀 Welcome to BrandKlout Test Reports</h1>
-                  <p>Redirecting to dashboard in 3 seconds...</p>
+                  <h1 class="loading">� BrandKlout Test Reports</h1>
+                  <div class="security-notice">
+                      <p><strong>🛡️ Secure Access Required</strong></p>
+                      <p>This site contains sensitive test data and requires authentication.</p>
+                  </div>
+                  <p>Redirecting to authentication in 3 seconds...</p>
                   <div>
-                      <a href="dashboard.html" class="btn">📊 Go to Dashboard</a>
-                      <a href="index.html" class="btn">📈 Direct to Report</a>
+                      <a href="auth.html" class="btn">🔑 Login Now</a>
+                      <a href="dashboard.html" class="btn">📊 Dashboard</a>
                   </div>
               </div>
+          </body>
+          </html>
+          EOF
+          
+          # Create main index.html that redirects to auth
+          cat > allure-history/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <meta charset="utf-8">
+              <title>BrandKlout Test Reports - Authentication Required</title>
+              <meta http-equiv="refresh" content="0; url=auth.html">
+              <script src="auth-guard.js"></script>
+          </head>
+          <body>
+              <script>
+                // Immediate redirect to auth if not authenticated
+                const authData = localStorage.getItem('brandklout_auth');
+                if (authData) {
+                  try {
+                    const data = JSON.parse(authData);
+                    const now = new Date().getTime();
+                    if (data.authenticated && data.expires > now) {
+                      // Check if there's a return page stored
+                      const returnPage = sessionStorage.getItem('brandklout_return_page');
+                      if (returnPage && returnPage !== 'auth.html') {
+                        window.location.href = returnPage;
+                      } else {
+                        window.location.href = 'dashboard.html';
+                      }
+                      return;
+                    }
+                  } catch (e) {
+                    localStorage.removeItem('brandklout_auth');
+                  }
+                }
+                window.location.href = 'auth.html';
+              </script>
+              <p>Redirecting to authentication...</p>
           </body>
           </html>
           EOF
