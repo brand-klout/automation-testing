@@ -92,10 +92,18 @@ jobs:
           mkdir -p allure-results/history
           base_url="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
           
+          echo "🔍 Downloading historical data for trend analysis..."
           for file in history.json history-trend.json duration-trend.json retry-trend.json; do
             echo "Downloading history/$file..."
-            curl -f -s "$base_url/history/$file" -o "allure-results/history/$file" || echo "No previous $file found"
+            if curl -f -s "$base_url/history/$file" -o "allure-results/history/$file"; then
+              echo "✅ Successfully downloaded $file ($(du -h allure-results/history/$file | cut -f1))"
+            else
+              echo "❌ No previous $file found (expected for first run)"
+            fi
           done
+          
+          echo "📊 Available history files:"
+          ls -la allure-results/history/ || echo "No history files downloaded"
 
       - name: Inject custom categories
         run: |
@@ -139,8 +147,17 @@ jobs:
 
       - name: Generate Allure report
         run: |
+          echo "Checking downloaded history files..."
+          ls -la allure-results/history/ || echo "No history directory found"
+          
           mkdir -p allure-report allure-history
-          allure generate allure-results --clean -o allure-report
+          
+          # Generate Allure report WITH history (do not use --clean to preserve history)
+          echo "Generating Allure report with historical data..."
+          allure generate allure-results -o allure-report
+          
+          echo "Generated report structure:"
+          ls -la allure-report/
           
           # Copy main report to root of deployment
           cp -r allure-report/* allure-history/
