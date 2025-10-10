@@ -205,6 +205,45 @@ jobs:
           base_url="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
           curl -f -s "$base_url/runs-history.csv" -o "existing-history.csv" || echo "run_number,date,commit" > existing-history.csv
           
+          # Download and preserve existing archives
+          echo "🔄 Downloading existing archives to preserve them..."
+          mkdir -p allure-history/archive
+          
+          # First, download existing archives to preserve them
+          while IFS=',' read -r run_num date_str commit_sha; do
+            if [ "$run_num" != "run_number" ] && [ ! -z "$run_num" ] && [ "$run_num" != "${{ github.run_number }}" ]; then
+              echo "Checking archive for run #$run_num..."
+              archive_dir="allure-history/archive/$run_num"
+              mkdir -p "$archive_dir"
+              
+              # Try to download the existing archive
+              if curl -f -s "$base_url/archive/$run_num/index.html" -o "$archive_dir/index.html" 2>/dev/null; then
+                echo "  ✅ Downloaded archive index for run #$run_num"
+                
+                # Download essential files for the archive
+                for file in app.js styles.css favicon.ico; do
+                  curl -f -s "$base_url/archive/$run_num/$file" -o "$archive_dir/$file" 2>/dev/null || true
+                done
+                
+                # Download data directory
+                mkdir -p "$archive_dir/data"
+                for data_file in suites.json timeline.json graph.json history.json behaviors.json categories.json; do
+                  curl -f -s "$base_url/archive/$run_num/data/$data_file" -o "$archive_dir/data/$data_file" 2>/dev/null || true
+                done
+                
+                # Download widgets directory if it exists
+                mkdir -p "$archive_dir/widgets"
+                for widget_file in summary.json status-chart.json timeline.json suites.json categories.json; do
+                  curl -f -s "$base_url/archive/$run_num/widgets/$widget_file" -o "$archive_dir/widgets/$widget_file" 2>/dev/null || true
+                done
+                
+                echo "  ✅ Preserved complete archive for run #$run_num"
+              else
+                echo "  ❌ No archive found for run #$run_num (will be marked as unavailable)"
+              fi
+            fi
+          done < existing-history.csv
+          
           # Merge existing history with current run (avoid duplicates)
           current_run_entry="${{ github.run_number }},$(date -u '+%Y-%m-%d %H:%M UTC'),${{ github.sha }}"
           
@@ -216,8 +255,7 @@ jobs:
           cp auth/auth.html allure-history/auth.html
           cp auth/auth-guard.js allure-history/auth-guard.js
           
-          # Generate archive rows from history file  
-          # Only the current run is guaranteed to have an archive
+          # Generate archive rows from history file with smarter preservation logic
           archive_rows=""
           while IFS=',' read -r run_num date_str commit_sha; do
             if [ "$run_num" != "run_number" ] && [ ! -z "$run_num" ]; then
@@ -225,8 +263,14 @@ jobs:
                 # Current run - always available
                 archive_rows="$archive_rows<tr class=\"current-run\"><td><a href=\"./archive/$run_num/index.html\" class=\"btn btn-sm primary\">🔗 Run #$run_num (Current)</a></td><td>Latest test report</td><td>$date_str</td></tr>"
               else
-                # Previous runs - show as reference only since archives may not exist
-                archive_rows="$archive_rows<tr><td><span class=\"btn btn-sm disabled\">� Run #$run_num</span></td><td>Historical run (archive not preserved)</td><td>$date_str</td></tr>"
+                # Check if we successfully preserved this archive
+                if [ -f "allure-history/archive/$run_num/index.html" ]; then
+                  # Archive exists - make it clickable
+                  archive_rows="$archive_rows<tr><td><a href=\"./archive/$run_num/index.html\" class=\"btn btn-sm\">🔗 Run #$run_num</a></td><td>Historical test report (preserved)</td><td>$date_str</td></tr>"
+                else
+                  # Archive doesn't exist - show as unavailable
+                  archive_rows="$archive_rows<tr><td><span class=\"btn btn-sm disabled\">📋 Run #$run_num</span></td><td>Archive not available</td><td>$date_str</td></tr>"
+                fi
               fi
             fi
           done < allure-history/runs-history.csv
@@ -355,7 +399,7 @@ jobs:
                   
                   <div class="history-section">
                       <h3>📚 Historical Reports & Trend Data</h3>
-                      <p>View test execution history and access archived reports. Only the current run archive is directly accessible; historical data contributes to trend analysis in the main report.</p>
+                      <p>View test execution history and access archived reports. The system now preserves historical archives when possible, making them accessible for review and comparison.</p>
                       
                       <table class="history-table">
                           <thead>
@@ -375,9 +419,10 @@ jobs:
                           <h4>💡 Archive Information</h4>
                           <ul>
                               <li><strong>Current Run:</strong> Full report archive available for immediate access</li>
-                              <li><strong>Historical Runs:</strong> Execution records preserved for trend analysis</li>
+                              <li><strong>Historical Runs (Preserved):</strong> Complete archived reports accessible for review</li>
+                              <li><strong>Historical Runs (Not Available):</strong> Records exist but archives were lost during deployment</li>
                               <li><strong>Trend Data:</strong> All historical data contributes to trends in the main report</li>
-                              <li><strong>Best Practice:</strong> Use the Latest Allure Report for comprehensive trend analysis</li>
+                              <li><strong>Archive Preservation:</strong> The system attempts to preserve previous archives across deployments</li>
                           </ul>
                       </div>
                   </div>
