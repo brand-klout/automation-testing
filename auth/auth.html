@@ -184,7 +184,7 @@
     <script>
         // Configuration - You can modify these values
         const ACCESS_CODES = [
-            'BK@123',      // Main access code
+            'BK@123',      // Main access code (case-sensitive)
         ];
         
         const REDIRECT_URL = 'dashboard.html'; // Where to redirect after successful auth
@@ -271,7 +271,7 @@
             
             // Simulate network delay for security
             setTimeout(() => {
-                if (ACCESS_CODES.includes(password.toLowerCase())) {
+                if (ACCESS_CODES.includes(password)) {
                     setAuth();
                     showMessage('success', '✅ Authentication successful! Redirecting...');
                     
