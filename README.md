@@ -97,21 +97,42 @@ playwright-report/
 test-results/
 ```
 
-### 9. Good Practices
+### 9. Test Reports & Authentication
+
+#### Live Test Reports
+- **URL**: https://brand-klout.github.io/automation-testing/
+- **Authentication**: Required for security
+- **Access Codes**: Contact QA team for current access codes
+
+#### Authentication System
+- **Login Page**: Secure access with session management
+- **Session Duration**: 4 hours with automatic extension
+- **Features**: Logout button, session timer, security protection
+- **Configuration**: See `auth/README.md` for management details
+
+#### Report Features
+- **Real-time Results**: Automatically updated after each CI run
+- **Historical Trends**: Track test performance over time
+- **Allure Integration**: Rich reporting with screenshots and traces
+- **Archive Access**: Previous test run results preserved
+
+### 10. Good Practices
 - Independent, idempotent scenarios
 - Stable selectors (data-testid / role)
 - Avoid `waitForTimeout`; rely on auto-wait + assertions
 - Keep step bodies thin; delegate detail to page objects / helpers
 
-### 10. Troubleshooting
+### 11. Troubleshooting
 | Issue | Tip |
 |-------|-----|
 | Missing steps | Run `npm run bdd:gen` again |
 | Browsers missing | `npx playwright install` or `npm run install-browsers` |
 | API failures | Check `API_BASE_URL` value |
 | Flaky test | Review trace / Allure history, add proper waits |
+| Report access denied | Check `auth/README.md` for current access codes |
+| Session expired | Re-authenticate with valid access code |
 
-### 11. License
+### 12. License
 Internal proprietary test assets (UNLICENSED / not for external distribution).
 
 ---

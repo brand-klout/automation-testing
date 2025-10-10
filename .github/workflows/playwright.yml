@@ -203,8 +203,8 @@ jobs:
           echo "$current_run_entry" >> allure-history/runs-history.csv
           
           # Copy authentication files
-          cp auth-template.html allure-history/auth.html
-          cp auth-guard.js allure-history/auth-guard.js
+          cp auth/auth.html allure-history/auth.html
+          cp auth/auth-guard.js allure-history/auth-guard.js
           
           # Generate archive rows from history file
           archive_rows=""
@@ -279,21 +279,21 @@ jobs:
                   
                   <div class="grid">
                       <div class="card highlight">
-                          <h3>📈 如何查看历史趋势数据</h3>
+                          <h3>📈 How to View Historical Trend Data</h3>
                           <div class="instructions">
-                              <h4>🇨🇳 中文操作指南</h4>
+                              <h4>📊 User Guide</h4>
                               <ol>
-                                  <li><strong>进入最新报告</strong>：点击上方 "Latest Allure Report" 按钮</li>
-                                  <li><strong>查看趋势图表</strong>：在左侧导航栏找到并点击 "Trend"</li>
-                                  <li><strong>分析历史数据</strong>：查看通过率、执行时间、重试次数等变化</li>
-                                  <li><strong>对比不同版本</strong>：使用下方历史记录表格选择特定版本</li>
+                                  <li><strong>Access Latest Report</strong>: Click "Latest Allure Report" button above</li>
+                                  <li><strong>View Trend Charts</strong>: Find and click "Trend" in the left navigation panel</li>
+                                  <li><strong>Analyze Historical Data</strong>: Review pass rates, execution time, retry patterns over time</li>
+                                  <li><strong>Compare Different Versions</strong>: Use the history table below to select specific test runs</li>
                               </ol>
-                              <h4>🇺🇸 English Guide</h4>
+                              <h4>💡 Advanced Features</h4>
                               <ol>
-                                  <li><strong>Enter Latest Report</strong>: Click "Latest Allure Report" above</li>
-                                  <li><strong>View Trends</strong>: Find and click "Trend" in left navigation</li>
-                                  <li><strong>Analyze Data</strong>: Review pass rates, duration, retry patterns</li>
-                                  <li><strong>Compare Versions</strong>: Use history table below for specific runs</li>
+                                  <li><strong>Duration Trends</strong>: Monitor test performance and identify bottlenecks</li>
+                                  <li><strong>Retry Analysis</strong>: Track flaky tests and failure patterns</li>
+                                  <li><strong>Success Rate Tracking</strong>: Monitor overall test suite health</li>
+                                  <li><strong>Historical Archives</strong>: Access detailed reports from previous runs</li>
                               </ol>
                           </div>
                       </div>
