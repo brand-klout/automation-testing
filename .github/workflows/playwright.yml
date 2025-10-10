@@ -213,11 +213,18 @@ jobs:
           cp auth/auth.html allure-history/auth.html
           cp auth/auth-guard.js allure-history/auth-guard.js
           
-          # Generate archive rows from history file
+          # Generate archive rows from history file  
+          # Only the current run is guaranteed to have an archive
           archive_rows=""
           while IFS=',' read -r run_num date_str commit_sha; do
             if [ "$run_num" != "run_number" ] && [ ! -z "$run_num" ]; then
-              archive_rows="$archive_rows<tr><td><a href=\"./archive/$run_num/index.html\" class=\"btn btn-sm\">🔗 Run #$run_num</a></td><td>Complete test report for run $run_num</td><td>$date_str</td></tr>"
+              if [ "$run_num" = "${{ github.run_number }}" ]; then
+                # Current run - always available
+                archive_rows="$archive_rows<tr class=\"current-run\"><td><a href=\"./archive/$run_num/index.html\" class=\"btn btn-sm primary\">🔗 Run #$run_num (Current)</a></td><td>Latest test report</td><td>$date_str</td></tr>"
+              else
+                # Previous runs - show as reference only since archives may not exist
+                archive_rows="$archive_rows<tr><td><span class=\"btn btn-sm disabled\">� Run #$run_num</span></td><td>Historical run (archive not preserved)</td><td>$date_str</td></tr>"
+              fi
             fi
           done < allure-history/runs-history.csv
           
@@ -245,6 +252,8 @@ jobs:
                 .btn.secondary { background: #95a5a6; box-shadow: 0 4px 15px rgba(149, 165, 166, 0.3); }
                 .btn.secondary:hover { box-shadow: 0 6px 20px rgba(149, 165, 166, 0.4); }
                 .btn-sm { padding: 8px 16px; font-size: 0.9em; margin: 2px; }
+                .btn.disabled { background: #bdc3c7; color: #7f8c8d; cursor: not-allowed; opacity: 0.6; }
+                .btn.disabled:hover { transform: none; box-shadow: none; }
                 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 25px; margin: 30px 0; }
                 .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-left: 4px solid #3498db; }
                 .card.highlight { border-left-color: #f39c12; background: linear-gradient(135deg, #fff9e6, #ffeaa7); }
@@ -342,7 +351,7 @@ jobs:
                   
                   <div class="history-section">
                       <h3>📚 Historical Reports & Trend Data</h3>
-                      <p>Each report contains cumulative trend data. The more reports you generate, the richer your historical analysis becomes.</p>
+                      <p>View test execution history and access archived reports. Only the current run archive is directly accessible; historical data contributes to trend analysis in the main report.</p>
                       
                       <table class="history-table">
                           <thead>
@@ -357,6 +366,16 @@ jobs:
                               $(if [ -z "$archive_rows" ]; then echo "<tr><td colspan='3' style='text-align: center; color: #7f8c8d; font-style: italic; padding: 30px;'>📊 Historical reports will appear here after multiple CI runs.<br>Each new run adds to your trend analysis!</td></tr>"; fi)
                           </tbody>
                       </table>
+                      
+                      <div class="instructions">
+                          <h4>💡 Archive Information</h4>
+                          <ul>
+                              <li><strong>Current Run:</strong> Full report archive available for immediate access</li>
+                              <li><strong>Historical Runs:</strong> Execution records preserved for trend analysis</li>
+                              <li><strong>Trend Data:</strong> All historical data contributes to trends in the main report</li>
+                              <li><strong>Best Practice:</strong> Use the Latest Allure Report for comprehensive trend analysis</li>
+                          </ul>
+                      </div>
                   </div>
                   
                   <div style="background: #2c3e50; color: white; padding: 30px; border-radius: 12px; text-align: center; margin-top: 30px;">
