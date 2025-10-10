@@ -17,9 +17,7 @@ auth/
 
 The following access codes are currently configured:
 
-- `brandklout2024` - Primary access code
-- `test-reports-2024` - Alternative access code  
-- `qa-team-access` - QA team specific code
+- `BK@123` - Access code
 
 ## How to Change Access Codes
 
@@ -31,9 +29,7 @@ To update the access codes:
    - Example:
      ```javascript
      const ACCESS_CODES = [
-         'your-new-code-2024',
-         'another-access-code',
-         'team-specific-code'
+         'your-new-code-2024'
      ];
      ```
 
@@ -94,9 +90,7 @@ Adjust in `auth-guard.js`:
 Update in `auth/auth.html`:
 ```javascript
 const ACCESS_CODES = [
-    'code1',
-    'code2',
-    'code3'
+    'code1'
 ];
 ```
 
