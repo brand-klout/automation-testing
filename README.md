@@ -1,5 +1,7 @@
 ## BrandKlout Automation Testing
 
+[![CI](https://github.com/brand-klout/automation-testing/actions/workflows/playwright.yml/badge.svg)](https://github.com/brand-klout/automation-testing/actions/workflows/playwright.yml) [![Allure Report](https://img.shields.io/badge/Allure-Report-blueviolet?logo=allure&logoColor=white)](https://brand-klout.github.io/automation-testing/dashboard.html)
+
 Minimal internal Playwright + BDD (Gherkin) suite for API and UI validation.
 
 ### 1. Quick Start
