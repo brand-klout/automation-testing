@@ -324,7 +324,7 @@ jobs:
                           </div>
                           <ul style="margin-top: 15px;">
                               <li><strong>Repository:</strong> ${{ github.repository }}</li>
-                              <li><strong>Generated:</strong> \$(date)</li>
+                              <li><strong>Generated:</strong> $(date -u '+%Y-%m-%d %H:%M UTC')</li>
                               <li><strong>Archive Status:</strong> Preserved</li>
                               <li><strong>History:</strong> Accumulating</li>
                           </ul>
