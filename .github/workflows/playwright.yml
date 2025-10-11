@@ -1,4 +1,4 @@
-name: Playwright Tests with Allure Reports
+name: 🧪 Playwright E2E Tests
 
 on:
   push:
@@ -16,135 +16,35 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  setup:
-    name: 🔧 Setup & Dependencies
+  test:
+    name: Run Tests
     runs-on: ubuntu-latest
-    outputs:
-      cache-key: ${{ steps.cache-key.outputs.key }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
       
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
           cache: 'npm'
-
-      - name: Generate cache key
-        id: cache-key
-        run: echo "key=deps-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}" >> $GITHUB_OUTPUT
-
-      - name: Cache dependencies and browsers
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.npm
-            ~/.cache/ms-playwright
-          key: ${{ steps.cache-key.outputs.key }}
-          restore-keys: |
-            deps-${{ runner.os }}-
 
       - name: Install dependencies
         run: npm ci
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps
 
-  test-execution:
-    name: 🧪 Execute Tests
-    runs-on: ubuntu-latest
-    needs: setup
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-
-      - name: Restore dependencies and browsers
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.npm
-            ~/.cache/ms-playwright
-          key: ${{ needs.setup.outputs.cache-key }}
-          restore-keys: |
-            deps-${{ runner.os }}-
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Cache BDD generated tests
-        uses: actions/cache@v4
-        with:
-          path: .features-gen
-          key: bdd-gen-${{ runner.os }}-${{ hashFiles('features/**/*.feature', 'tests/steps/**/*.ts') }}
-          restore-keys: |
-            bdd-gen-${{ runner.os }}-
-
-      - name: Generate BDD tests
-        run: npm run bdd:gen
-
-      - name: Download previous Allure history
+      - name: Download history
         run: |
-          mkdir -p allure-results/history
           base_url="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
-          
-          echo "🔍 Downloading historical data for trend analysis..."
-          for file in history.json history-trend.json duration-trend.json retry-trend.json; do
-            echo "Downloading history/$file..."
-            if curl -f -s "$base_url/history/$file" -o "allure-results/history/$file"; then
-              echo "✅ Successfully downloaded $file ($(du -h allure-results/history/$file | cut -f1))"
-            else
-              echo "❌ No previous $file found (expected for first run)"
-            fi
-          done
-          
-          echo "📊 Available history files:"
-          ls -la allure-results/history/ || echo "No history files downloaded"
+          mkdir -p allure-results/history
+          curl -f -s "$base_url/history.zip" -o history.zip && unzip -o history.zip -d allure-results/ || echo "No history found"
 
-      - name: Inject custom categories
-        run: |
-          if [ -f allure-categories/categories.json ]; then
-            cp allure-categories/categories.json allure-results/categories.json
-          fi
-
-      - name: Run Playwright tests
+      - name: Run tests
         run: npm run test:bdd
 
-      - name: Verify test results
-        if: always()
-        run: |
-          echo "Verifying test results structure..."
-          
-          if [ -d "allure-results" ]; then
-            echo "✅ Allure results directory exists"
-            echo "Results files: $(find allure-results -name "*.json" | wc -l) JSON files"
-            echo "Attachments: $(find allure-results -name "*.png" -o -name "*.html" -o -name "*.txt" | wc -l) files"
-            
-            # Check for key result files
-            if find allure-results -name "*-result.json" | head -1 > /dev/null; then
-              echo "✅ Test result files present"
-            else
-              echo "⚠️  No test result files found"
-            fi
-            
-            if find allure-results -name "*-container.json" | head -1 > /dev/null; then
-              echo "✅ Test container files present"
-            else
-              echo "⚠️  No test container files found"
-            fi
-          else
-            echo "❌ No allure-results directory found"
-          fi
-          
-          # List first few result files for debugging
-          echo "Sample result files:"
-          find allure-results -name "*.json" | head -5
-
-      - name: Upload test artifacts
+      - name: Upload artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -152,632 +52,59 @@ jobs:
           path: |
             allure-results/
             test-results/
-          retention-days: 30
 
-  report-generation:
-    name: 📊 Generate Reports
+  report:
+    name: Generate Report
     runs-on: ubuntu-latest
-    needs: test-execution
+    needs: test
     if: always()
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Download test artifacts
+      - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
           name: test-results
-          path: .
 
-      - name: Setup Allure CLI
+      - name: Setup Allure
         run: |
-          curl -o allure-2.24.0.tgz -Ls https://github.com/allure-framework/allure2/releases/download/2.24.0/allure-2.24.0.tgz
-          tar -zxf allure-2.24.0.tgz
+          curl -o allure.tgz -Ls https://github.com/allure-framework/allure2/releases/download/2.24.0/allure-2.24.0.tgz
+          tar -zxf allure.tgz
           sudo mv allure-2.24.0 /opt/allure
           echo "/opt/allure/bin" >> $GITHUB_PATH
 
-      - name: Generate Allure report
+      - name: Generate report
         run: |
-          echo "Checking downloaded history files..."
-          ls -la allure-results/history/ || echo "No history directory found"
+          mkdir -p deploy
+          allure generate allure-results -o deploy --clean
           
-          mkdir -p allure-report allure-history
-          
-          # Generate Allure report WITH history (do not use --clean to preserve history)
-          echo "Generating Allure report with historical data..."
-          allure generate allure-results -o allure-report --clean
-          
-          echo "Generated report structure:"
-          ls -la allure-report/
-          
-          # Verify critical files exist in generated report
-          echo "Verifying generated report completeness..."
-          if [ -f "allure-report/index.html" ] && [ -f "allure-report/app.js" ] && [ -d "allure-report/data" ]; then
-            echo "✅ Core report files present"
-            ls -la allure-report/data/
-            ls -la allure-report/widgets/ || echo "No widgets directory"
-            ls -la allure-report/plugins/ || echo "No plugins directory"
-          else
-            echo "⚠️  Missing critical report files"
-            echo "Contents of allure-report:"
-            find allure-report -type f | head -20
-          fi
-          
-          # Copy main report to root of deployment with auth protection
-          cp -r allure-report/* allure-history/
-          
-          # Add authentication protection to Allure report pages
-          echo "Adding authentication protection to Allure report pages..."
-          
-          # Inject auth script into main Allure index.html
-          if [ -f allure-history/index.html ]; then
-            # Create backup
-            cp allure-history/index.html allure-history/allure-index.html
-            
-            # Add auth guard and favicon to Allure index.html after head tag
-            sed 's|<head>|<head><script src="auth-guard.js"></script><link rel="icon" type="image/x-icon" href="https://cst.uat.brandklout.com/favicon.ico">|' allure-history/allure-index.html > allure-history/temp-index.html
-            mv allure-history/temp-index.html allure-history/allure-index.html
-          fi
-          
-          # Preserve history for next run
-          if [ -d allure-report/history ]; then
-            mkdir -p allure-history/history
-            cp -r allure-report/history/* allure-history/history/
-          fi
-          
-          # Create archive copy with run number and preserve history metadata
-          mkdir -p "allure-history/archive/${{ github.run_number }}"
-          cp -r allure-report/* "allure-history/archive/${{ github.run_number }}/"
-          
-          # Verify archive completeness
-          echo "Verifying archive completeness for run ${{ github.run_number }}..."
-          archive_path="allure-history/archive/${{ github.run_number }}"
-          
-          if [ -f "$archive_path/index.html" ] && [ -f "$archive_path/app.js" ] && [ -d "$archive_path/data" ]; then
-            echo "✅ Archive created successfully with core files"
-            
-            # Check for critical data files
-            if [ -f "$archive_path/data/suites.json" ]; then
-              echo "✅ Suites data present"
-            else
-              echo "⚠️  Missing suites.json - report may not load properly"
-            fi
-            
-            if [ -d "$archive_path/widgets" ]; then
-              echo "✅ Widgets directory present: $(ls $archive_path/widgets/ | wc -l) files"
-            else
-              echo "⚠️  Missing widgets directory - overview may show loading"
-            fi
-            
-            if [ -d "$archive_path/plugins" ]; then
-              echo "✅ Plugins directory present: $(ls $archive_path/plugins/ | wc -l) files"
-            else
-              echo "⚠️  Missing plugins directory - some features may not work"
-            fi
-          else
-            echo "❌ Archive creation failed - missing critical files"
-            echo "Archive contents:"
-            find "$archive_path" -type f | head -10
-          fi
-          
-          # Add favicon and authentication to archive index.html
-          if [ -f "allure-history/archive/${{ github.run_number }}/index.html" ]; then
-            echo "Adding favicon and authentication to archive index.html..."
-            # Add both favicon and auth protection to archive Allure report (using local auth-guard.js)
-            sed -i 's|<head>|<head><script src="auth-guard.js"></script><link rel="icon" type="image/x-icon" href="https://cst.uat.brandklout.com/favicon.ico">|' "allure-history/archive/${{ github.run_number }}/index.html"
-            echo "✅ Favicon and authentication added to archive index.html"
-            
-            # Copy auth files to archive directory for proper authentication flow
-            echo "Copying auth files to archive directory..."
-            cp auth/auth.html "allure-history/archive/${{ github.run_number }}/auth.html"
-            cp auth/auth-guard.js "allure-history/archive/${{ github.run_number }}/auth-guard.js"
-            echo "✅ Auth files copied to archive directory"
-          else
-            echo "❌ Warning: No index.html found in archive for run ${{ github.run_number }}"
-          fi
-          
-          # Create a simple history index file
-          echo "Creating history metadata for easier navigation..."
-          echo "${{ github.run_number }},$(date -u '+%Y-%m-%d %H:%M UTC'),${{ github.sha }}" >> allure-history/runs-history.csv
-
-      - name: Create enhanced dashboard with history navigation and auth
+      - name: Setup authentication
+        env:
+          ACCESS_CODE: ${{ secrets.ACCESS_CODE || 'BK@123' }}
         run: |
-          # Download existing history metadata if available
-          base_url="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
-          curl -f -s "$base_url/runs-history.csv" -o "existing-history.csv" || echo "run_number,date,commit" > existing-history.csv
-          
-          # Download and preserve existing archives
-          echo "🔄 Downloading existing archives to preserve them..."
-          mkdir -p allure-history/archive
-          
-          # First, download existing archives to preserve them
-          while IFS=',' read -r run_num date_str commit_sha; do
-            if [ "$run_num" != "run_number" ] && [ ! -z "$run_num" ] && [ "$run_num" != "${{ github.run_number }}" ]; then
-              echo "Checking archive for run #$run_num..."
-              archive_dir="allure-history/archive/$run_num"
-              mkdir -p "$archive_dir"
-              
-              # Try to download the existing archive
-              if curl -f -s "$base_url/archive/$run_num/index.html" -o "$archive_dir/index.html" 2>/dev/null; then
-                echo "  ✅ Downloaded archive index for run #$run_num"
-                
-                # Download essential JavaScript and CSS files
-                for file in app.js styles.css favicon.ico complete.js main.js index.js; do
-                  if curl -f -s "$base_url/archive/$run_num/$file" -o "$archive_dir/$file" 2>/dev/null; then
-                    echo "    ✅ Downloaded $file"
-                  else
-                    echo "    ⚠️  Missing $file"
-                  fi
-                done
-                
-                # Download static assets directory
-                mkdir -p "$archive_dir/static"
-                for static_file in app.js styles.css; do
-                  curl -f -s "$base_url/archive/$run_num/static/$static_file" -o "$archive_dir/static/$static_file" 2>/dev/null || true
-                done
-                
-                # Download plugins directory (critical for functionality)
-                mkdir -p "$archive_dir/plugins"
-                for plugin_file in behaviors-plugin.js categories-plugin.js graph-plugin.js packages-plugin.js screen-diff-plugin.js suites-plugin.js timeline-plugin.js; do
-                  curl -f -s "$base_url/archive/$run_num/plugins/$plugin_file" -o "$archive_dir/plugins/$plugin_file" 2>/dev/null || true
-                done
-                
-                # Download data directory (critical for content)
-                mkdir -p "$archive_dir/data"
-                for data_file in suites.json timeline.json graph.json history.json behaviors.json categories.json packages.json test-cases.json attachments.json environment.json; do
-                  if curl -f -s "$base_url/archive/$run_num/data/$data_file" -o "$archive_dir/data/$data_file" 2>/dev/null; then
-                    echo "    ✅ Downloaded data/$data_file"
-                  else
-                    echo "    ⚠️  Missing data/$data_file"
-                  fi
-                done
-                
-                # Download attachments directory if it exists
-                mkdir -p "$archive_dir/data/attachments"
-                # Try to download common attachment file patterns
-                for ext in png jpg jpeg gif html txt json; do
-                  curl -f -s "$base_url/archive/$run_num/data/attachments/*.$ext" -o "$archive_dir/data/attachments/" 2>/dev/null || true
-                done
-                
-                # Download widgets directory (for overview panels)
-                mkdir -p "$archive_dir/widgets"
-                for widget_file in summary.json status-chart.json timeline.json suites.json categories.json severity.json duration.json history-trend.json executor.json; do
-                  curl -f -s "$base_url/archive/$run_num/widgets/$widget_file" -o "$archive_dir/widgets/$widget_file" 2>/dev/null || true
-                done
-                
-                # Download export directory if exists
-                mkdir -p "$archive_dir/export"
-                curl -f -s "$base_url/archive/$run_num/export/prometheusData.txt" -o "$archive_dir/export/prometheusData.txt" 2>/dev/null || true
-                curl -f -s "$base_url/archive/$run_num/export/influxDbData.txt" -o "$archive_dir/export/influxDbData.txt" 2>/dev/null || true
-                
-                # Verify critical files exist
-                if [ -f "$archive_dir/data/suites.json" ] && [ -f "$archive_dir/app.js" ]; then
-                  echo "  ✅ Archive for run #$run_num appears complete"
-                  
-                  # Add authentication protection to downloaded archive
-                  if [ -f "$archive_dir/index.html" ]; then
-                    echo "  🔒 Adding authentication to archive #$run_num"
-                    # Check if auth protection already exists to avoid duplicate injection
-                    if ! grep -q "auth-guard.js" "$archive_dir/index.html"; then
-                      sed -i 's|<head>|<head><script src="auth-guard.js"></script>|' "$archive_dir/index.html"
-                      echo "  ✅ Authentication added to archive #$run_num"
-                    else
-                      echo "  ✅ Authentication already present in archive #$run_num"
-                    fi
-                    
-                    # Copy auth files to archive directory for proper authentication flow
-                    echo "  📁 Copying auth files to archive #$run_num"
-                    cp auth/auth.html "$archive_dir/auth.html"
-                    cp auth/auth-guard.js "$archive_dir/auth-guard.js"
-                    echo "  ✅ Auth files copied to archive #$run_num"
-                  fi
-                else
-                  echo "  ⚠️  Archive for run #$run_num may be incomplete (missing critical files)"
-                fi
-                
-                echo "  ✅ Preserved complete archive for run #$run_num"
-              else
-                echo "  ❌ No archive found for run #$run_num (will be marked as unavailable)"
-              fi
-            fi
-          done < existing-history.csv
-          
-          # Merge existing history with current run (avoid duplicates)
-          current_run_entry="${{ github.run_number }},$(date -u '+%Y-%m-%d %H:%M UTC'),${{ github.sha }}"
-          
-          # Create merged history, removing any existing entry for current run
-          cat existing-history.csv | grep -v "^${{ github.run_number }}," > allure-history/runs-history.csv || echo "run_number,date,commit" > allure-history/runs-history.csv
-          echo "$current_run_entry" >> allure-history/runs-history.csv
-          
-          # Copy authentication files
-          cp auth/auth.html allure-history/auth.html
-          cp auth/auth-guard.js allure-history/auth-guard.js
-          
-          # Generate archive rows from history file with smarter preservation logic (newest first)
-          archive_rows=""
-          
-          # Sort history by run number (descending - newest first)
-          sorted_history=$(cat allure-history/runs-history.csv | grep -v "^run_number" | sort -t',' -k1 -nr)
-          
-          # Process sorted history
-          echo "$sorted_history" | while IFS=',' read -r run_num date_str commit_sha; do
-            if [ ! -z "$run_num" ]; then
-              if [ "$run_num" = "${{ github.run_number }}" ]; then
-                # Current run - always available
-                echo "<tr class=\"current-run\"><td><a href=\"./archive/$run_num/index.html\" class=\"btn btn-sm primary\">🔗 Run #$run_num (Current)</a></td><td>Latest test report</td><td>$date_str</td></tr>"
-              else
-                # Check if we successfully preserved this archive
-                if [ -f "allure-history/archive/$run_num/index.html" ]; then
-                  # Archive exists - make it clickable
-                  echo "<tr><td><a href=\"./archive/$run_num/index.html\" class=\"btn btn-sm\">🔗 Run #$run_num</a></td><td>Historical test report (preserved)</td><td>$date_str</td></tr>"
-                else
-                  # Archive doesn't exist - show as unavailable
-                  echo "<tr><td><span class=\"btn btn-sm disabled\">📋 Run #$run_num</span></td><td>Archive not available</td><td>$date_str</td></tr>"
-                fi
-              fi
-            fi
-          done > /tmp/archive_rows.txt
-          
-          # Read the generated rows
-          archive_rows=$(cat /tmp/archive_rows.txt)
-          
-          # Create comprehensive dashboard with authentication
-          cat > allure-history/dashboard.html << EOF
-          <!DOCTYPE html>
-          <html>
-          <head>
-              <title>BrandKlout Test Reports Dashboard</title>
-              <meta charset="utf-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1">
-              <link rel="icon" type="image/x-icon" href="https://cst.uat.brandklout.com/favicon.ico">
-              <script src="auth-guard.js"></script>
-              <style>
-                * { box-sizing: border-box; }
-                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background: #f5f7fa; color: #2c3e50; }
-                .container { max-width: 1200px; margin: 0 auto; }
-                .header { text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 20px; border-radius: 15px; margin-bottom: 30px; }
-                .header h1 { margin: 0; font-size: 2.5em; font-weight: 300; }
-                .header p { margin: 10px 0 0 0; opacity: 0.9; font-size: 1.2em; }
-                .main-actions { text-align: center; margin: 30px 0; }
-                .btn { display: inline-block; padding: 15px 30px; background: #3498db; color: white; text-decoration: none; border-radius: 8px; margin: 10px; font-weight: 500; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3); }
-                .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4); }
-                .btn.primary { background: #27ae60; font-size: 1.2em; padding: 18px 36px; box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3); }
-                .btn.primary:hover { box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4); }
-                .btn.secondary { background: #95a5a6; box-shadow: 0 4px 15px rgba(149, 165, 166, 0.3); }
-                .btn.secondary:hover { box-shadow: 0 6px 20px rgba(149, 165, 166, 0.4); }
-                .btn-sm { padding: 8px 16px; font-size: 0.9em; margin: 2px; }
-                .btn.disabled { background: #bdc3c7; color: #7f8c8d; cursor: not-allowed; opacity: 0.6; }
-                .btn.disabled:hover { transform: none; box-shadow: none; }
-                .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 25px; margin: 30px 0; }
-                .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border-left: 4px solid #3498db; }
-                .card.highlight { border-left-color: #f39c12; background: linear-gradient(135deg, #fff9e6, #ffeaa7); }
-                .card.info { border-left-color: #3498db; }
-                .card.success { border-left-color: #27ae60; }
-                .features { list-style: none; padding: 0; margin: 0; }
-                .features li { padding: 10px 0; border-bottom: 1px solid #ecf0f1; display: flex; align-items: center; }
-                .features li:last-child { border-bottom: none; }
-                .features li:before { content: "✅"; margin-right: 12px; font-size: 1.1em; }
-                .history-section { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-top: 30px; }
-                .history-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                .history-table th { background: #34495e; color: white; padding: 15px; text-align: left; font-weight: 500; }
-                .history-table td { padding: 12px 15px; border-bottom: 1px solid #ecf0f1; }
-                .history-table tbody tr:hover { background: #f8f9fa; }
-                .instructions { background: #e8f4fd; border: 1px solid #bee5eb; border-radius: 8px; padding: 20px; margin: 20px 0; }
-                .instructions h4 { color: #0c5460; margin-top: 0; }
-                .quick-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
-                .stat { background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #dee2e6; }
-                .stat.clickable { cursor: pointer; transition: all 0.3s ease; }
-                .stat.clickable:hover { background: #e9ecef; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); border-color: #3498db; }
-                .stat-value { font-size: 1.8em; font-weight: bold; color: #2c3e50; }
-                .stat-label { color: #7f8c8d; font-size: 0.9em; margin-top: 5px; }
-                .auth-notice { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 10px 20px; border-radius: 8px; margin: 20px 0; text-align: center; }
-              </style>
-          </head>
-          <body>
-              <div class="container">
-                  <div class="auth-notice">
-                      🔐 <strong>Secure Access:</strong> This dashboard is protected by authentication. Session expires after 4 hours.
-                  </div>
-                  <div class="header">
-                      <h1>🚀 BrandKlout Testing Dashboard</h1>
-                      <p>Comprehensive test automation with advanced trend analysis</p>
-                  </div>
-                  
-                  <div class="main-actions">
-                      <a href="./allure-index.html" class="btn primary">📊 Latest Allure Report (Run #${{ github.run_number }})</a>
-                      <a href="./archive/${{ github.run_number }}/index.html" class="btn secondary">📁 Current Run Archive</a>
-                      <a href="https://github.com/${{ github.repository }}/actions" class="btn secondary">⚙️ CI/CD Pipeline</a>
-                  </div>
-                  
-                  <div class="grid">
-                      <div class="card highlight">
-                          <h3>📈 How to View Historical Trend Data</h3>
-                          <div class="instructions">
-                              <h4>📊 User Guide</h4>
-                              <ol>
-                                  <li><strong>Access Latest Report</strong>: Click "Latest Allure Report" button above</li>
-                                  <li><strong>View Trend Charts</strong>: Find and click "Trend" in the left navigation panel</li>
-                                  <li><strong>Analyze Historical Data</strong>: Review pass rates, execution time, retry patterns over time</li>
-                                  <li><strong>Compare Different Versions</strong>: Use the history table below to select specific test runs</li>
-                              </ol>
-                              <h4>💡 Advanced Features</h4>
-                              <ol>
-                                  <li><strong>Duration Trends</strong>: Monitor test performance and identify bottlenecks</li>
-                                  <li><strong>Retry Analysis</strong>: Track flaky tests and failure patterns</li>
-                                  <li><strong>Success Rate Tracking</strong>: Monitor overall test suite health</li>
-                                  <li><strong>Historical Archives</strong>: Access detailed reports from previous runs</li>
-                              </ol>
-                          </div>
-                      </div>
-                      
-                      <div class="card success">
-                          <h3>🎯 Available Trend Features</h3>
-                          <ul class="features">
-                              <li>Test execution success/failure rates over time</li>
-                              <li>Performance metrics and duration trends</li>
-                              <li>Flaky test detection and retry analysis</li>
-                              <li>Historical comparison between runs</li>
-                              <li>Environment and execution context tracking</li>
-                              <li>Custom categories and test grouping</li>
-                          </ul>
-                      </div>
-                      
-                      <div class="card info">
-                          <h3>📋 Current Run Info</h3>
-                          <div class="quick-stats">
-                              <div class="stat clickable" onclick="window.open('https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}', '_blank')">
-                                  <div class="stat-value">#${{ github.run_number }}</div>
-                                  <div class="stat-label">Run Number</div>
-                              </div>
-                              <div class="stat clickable" onclick="window.location.href='./allure-index.html'">
-                                  <div class="stat-value">✅</div>
-                                  <div class="stat-label">Trend Data</div>
-                              </div>
-                          </div>
-                          <ul style="margin-top: 15px;">
-                              <li><strong>Repository:</strong> ${{ github.repository }}</li>
-                              <li><strong>Generated:</strong> $(date -u '+%Y-%m-%d %H:%M UTC')</li>
-                              <li><strong>Archive Status:</strong> Preserved</li>
-                              <li><strong>History:</strong> Accumulating</li>
-                          </ul>
-                      </div>
-                  </div>
-                  
-                  <div class="history-section">
-                      <h3>📚 Historical Reports & Trend Data</h3>
-                      <p>View test execution history and access archived reports. The system now preserves historical archives when possible, making them accessible for review and comparison.</p>
-                      
-                      <table class="history-table">
-                          <thead>
-                              <tr>
-                                  <th>Report Access</th>
-                                  <th>Description</th>
-                                  <th>Generated</th>
-                              </tr>
-                          </thead>
-                          <tbody>
-                              $archive_rows
-                              $(if [ -z "$archive_rows" ]; then echo "<tr><td colspan='3' style='text-align: center; color: #7f8c8d; font-style: italic; padding: 30px;'>📊 Historical reports will appear here after multiple CI runs.<br>Each new run adds to your trend analysis!</td></tr>"; fi)
-                          </tbody>
-                      </table>
-                      
-                      <div class="instructions">
-                          <h4>💡 Archive Information</h4>
-                          <ul>
-                              <li><strong>Current Run:</strong> Full report archive available for immediate access</li>
-                              <li><strong>Historical Runs (Preserved):</strong> Complete archived reports accessible for review</li>
-                              <li><strong>Historical Runs (Not Available):</strong> Records exist but archives were lost during deployment</li>
-                              <li><strong>Trend Data:</strong> All historical data contributes to trends in the main report</li>
-                              <li><strong>Archive Preservation:</strong> The system attempts to preserve previous archives across deployments</li>
-                          </ul>
-                      </div>
-                  </div>
-                  
-                  <div style="background: #2c3e50; color: white; padding: 30px; border-radius: 12px; text-align: center; margin-top: 30px;">
-                      <h4>💡 Pro Tip for Trend Analysis</h4>
-                      <p>The trend visualization becomes more valuable with each test run. After 5-10 runs, you'll see clear patterns in test stability, performance improvements, and potential regressions. Use this data to make informed decisions about your test suite health!</p>
-                  </div>
-              </div>
-          </body>
-          </html>
-          EOF
+          chmod +x scripts/deploy.sh
+          ./scripts/deploy.sh
 
-      - name: Upload report artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: allure-reports
-          path: allure-history/
-          retention-days: 30
-
-  deploy:
-    name: 🚀 Deploy to GitHub Pages
-    runs-on: ubuntu-latest
-    needs: report-generation
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    steps:
-      - name: Download report artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: allure-reports
-          path: ./allure-history
-
-      - name: Create index redirect to authentication
+      - name: Create history archive
         run: |
-          # Create a beautiful redirect from index to auth
-          cat > allure-history/welcome.html << 'EOF'
-          <!DOCTYPE html>
-          <html>
-          <head>
-              <meta charset="utf-8">
-              <title>BrandKlout Test Reports</title>
-              <meta http-equiv="refresh" content="3; url=auth.html">
-              <link rel="icon" type="image/x-icon" href="https://cst.uat.brandklout.com/favicon.ico">
-              <style>
-                body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-align: center; padding: 100px 20px; margin: 0; }
-                .container { max-width: 600px; margin: 0 auto; }
-                .loading { animation: pulse 2s infinite; }
-                @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-                .btn { display: inline-block; background: rgba(255,255,255,0.2); color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 10px; backdrop-filter: blur(10px); }
-                .btn:hover { background: rgba(255,255,255,0.3); }
-                .security-notice { background: rgba(231, 76, 60, 0.1); border: 1px solid rgba(231, 76, 60, 0.3); border-radius: 8px; padding: 15px; margin: 20px 0; }
-              </style>
-          </head>
-          <body>
-              <div class="container">
-                  <h1 class="loading">� BrandKlout Test Reports</h1>
-                  <div class="security-notice">
-                      <p><strong>🛡️ Secure Access Required</strong></p>
-                      <p>This site contains sensitive test data and requires authentication.</p>
-                  </div>
-                  <p>Redirecting to authentication in 3 seconds...</p>
-                  <div>
-                      <a href="auth.html" class="btn">🔑 Login Now</a>
-                      <a href="dashboard.html" class="btn">📊 Dashboard</a>
-                  </div>
-              </div>
-          </body>
-          </html>
-          EOF
-          
-          # Create main index.html that redirects to auth
-          echo "Creating main index.html for site root..."
-          cat > allure-history/index.html << 'EOF'
-          <!DOCTYPE html>
-          <html>
-          <head>
-              <meta charset="utf-8">
-              <title>BrandKlout Test Reports - Authentication Required</title>
-              <meta http-equiv="refresh" content="1; url=./auth.html">
-              <link rel="icon" type="image/x-icon" href="https://cst.uat.brandklout.com/favicon.ico">
-              <style>
-                body { 
-                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-                  text-align: center; 
-                  padding: 50px; 
-                  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                  color: white; 
-                  min-height: 100vh; 
-                  display: flex; 
-                  align-items: center; 
-                  justify-content: center; 
-                  flex-direction: column; 
-                }
-                .loading { margin: 20px 0; }
-                .spinner { 
-                  border: 2px solid rgba(255,255,255,0.3); 
-                  border-radius: 50%; 
-                  border-top: 2px solid white; 
-                  width: 30px; 
-                  height: 30px; 
-                  animation: spin 1s linear infinite; 
-                  margin: 0 auto; 
-                }
-                @keyframes spin { 
-                  0% { transform: rotate(0deg); } 
-                  100% { transform: rotate(360deg); } 
-                }
-                a { color: #fff; text-decoration: underline; }
-                .btn { 
-                  background: rgba(255,255,255,0.2); 
-                  color: white; 
-                  padding: 12px 24px; 
-                  border: 1px solid rgba(255,255,255,0.3); 
-                  border-radius: 8px; 
-                  text-decoration: none; 
-                  margin: 10px; 
-                  display: inline-block; 
-                  transition: all 0.3s ease;
-                }
-                .btn:hover { 
-                  background: rgba(255,255,255,0.3); 
-                  transform: translateY(-2px); 
-                }
-              </style>
-          </head>
-          <body>
-              <h1>🔐 BrandKlout Test Reports</h1>
-              <div class="loading">
-                  <div class="spinner"></div>
-                  <p>Redirecting to authentication page...</p>
-              </div>
-              
-              <div style="margin-top: 30px;">
-                  <a href="./auth.html" class="btn">🚀 Continue to Login</a>
-                  <br><br>
-                  <a href="./dashboard.html" class="btn">📊 Dashboard (if authenticated)</a>
-              </div>
-              
-              <script>
-                console.log('Page loaded, checking authentication...');
-                
-                // Immediate check for existing authentication
-                const authData = localStorage.getItem('brandklout_auth');
-                if (authData) {
-                  try {
-                    const data = JSON.parse(authData);
-                    const now = new Date().getTime();
-                    if (data.authenticated && data.expires > now) {
-                      console.log('User already authenticated, redirecting to dashboard...');
-                      window.location.href = './dashboard.html';
-                      return;
-                    } else {
-                      console.log('Authentication expired, clearing storage...');
-                      localStorage.removeItem('brandklout_auth');
-                    }
-                  } catch (e) {
-                    console.log('Invalid auth data, clearing storage...');
-                    localStorage.removeItem('brandklout_auth');
-                  }
-                }
-                
-                // Force redirect to auth page after 1 second
-                console.log('Redirecting to auth page in 1 second...');
-                setTimeout(() => {
-                  console.log('Executing redirect to auth.html');
-                  window.location.href = './auth.html';
-                }, 1000);
-                
-                // Backup redirect on page load
-                window.addEventListener('load', function() {
-                  setTimeout(() => {
-                    if (window.location.pathname.endsWith('/') || window.location.pathname.endsWith('/index.html')) {
-                      console.log('Backup redirect executing...');
-                      window.location.href = './auth.html';
-                    }
-                  }, 2000);
-                });
-              </script>
-          </body>
-          </html>
-          EOF
-          
-          echo "✅ Main index.html created successfully"
-          ls -la allure-history/index.html
+          # Archive current history for next run
+          zip -r deploy/history.zip deploy/history/ 2>/dev/null || true
 
-      - name: Clean deployment directory
-        run: |
-          rm -rf allure-history/.git 2>/dev/null || true
-          chmod -R 755 allure-history 2>/dev/null || true
-          
-          echo "📋 Final deployment structure:"
-          ls -la allure-history/
-          echo ""
-          echo "📁 Key files verification:"
-          [ -f allure-history/index.html ] && echo "✅ index.html exists" || echo "❌ index.html missing"
-          [ -f allure-history/auth.html ] && echo "✅ auth.html exists" || echo "❌ auth.html missing"
-          [ -f allure-history/auth-guard.js ] && echo "✅ auth-guard.js exists" || echo "❌ auth-guard.js missing"
-          [ -f allure-history/dashboard.html ] && echo "✅ dashboard.html exists" || echo "❌ dashboard.html missing"
-          echo ""
-          echo "📄 Index.html preview:"
-          head -10 allure-history/index.html
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-
-      - name: Upload to GitHub Pages
+      - name: Deploy to Pages
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./allure-history
+          path: ./deploy
 
+  deploy:
+    name: Deploy Pages
+    runs-on: ubuntu-latest
+    needs: report
+    if: always() && github.ref == 'refs/heads/main'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

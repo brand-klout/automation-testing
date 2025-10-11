@@ -1,148 +1,64 @@
-## BrandKlout Automation Testing
+# BrandKlout Automation Testing
 
-[![CI](https://github.com/brand-klout/automation-testing/actions/workflows/playwright.yml/badge.svg)](https://github.com/brand-klout/automation-testing/actions/workflows/playwright.yml) [![Allure Report](https://img.shields.io/badge/Allure-Report-blueviolet?logo=allure&logoColor=white)](https://brand-klout.github.io/automation-testing/dashboard.html)
+[![CI](https://github.com/brand-klout/automation-testing/actions/workflows/playwright.yml/badge.svg)](https://github.com/brand-klout/automation-testing/actions/workflows/playwright.yml) [![Test Reports](https://img.shields.io/badge/Test-Reports-success?logo=github)](https://brand-klout.github.io/automation-testing/)
 
-Minimal internal Playwright + BDD (Gherkin) suite for API and UI validation.
+Automated end-to-end testing suite using Playwright and BDD for BrandKlout applications.
 
-### 1. Quick Start
+## 🚀 Quick Start
+
 ```bash
+# Install dependencies
 npm install
 npx playwright install
-npm run bdd            # generate + run all scenarios
-npm run test:api       # API only
-npm run test:ui        # UI only
-npm run allure:serve   # local Allure report
+
+# Run tests  
+npm run test:bdd
+
+# Local reports
+npm run allure:serve
 ```
 
-### 2. Scripts
-| Script | Purpose |
-|--------|---------|
-| bdd | Generate + run all BDD scenarios |
-| test:api | Run only API project |
-| test:ui | Run only UI project |
-## BrandKlout Automation Testing
+## 📋 Available Scripts
 
-Minimal internal Playwright + BDD (Gherkin) suite for API and UI validation.
+| Script | Description |
+|--------|-------------|
+| `npm run test:bdd` | Run BDD scenarios |
+| `npm run test:api` | API tests only |
+| `npm run test:ui` | UI tests only |
+| `npm run test:headed` | Run with visible browser |
+| `npm run test:debug` | Debug mode |
+| `npm run allure:serve` | Local Allure report |
 
-### 1. Quick Start
-```bash
-npm install
-npx playwright install        # install browsers
-npm run bdd                   # generate + run all scenarios
-npm run test:api              # API only
-npm run test:ui               # UI only
-npm run allure:serve          # local Allure report
+## 🧪 Test Structure
+
+```
+features/           # BDD scenarios (.feature files)
+tests/
+  ├── pages/        # Page Object Model
+  └── steps/        # Step definitions
 ```
 
-### 2. Scripts
-| Command | Description |
-|---------|-------------|
-| npm run bdd | Generate + run all BDD tests (api + ui) |
-| npm run bdd:gen | Generate test code only |
-| npm run bdd:api | Generate + run API tests only |
-| npm run bdd:ui | Generate + run UI tests only |
-| npm run test:api | Run API project (expects generated files) |
-| npm run test:ui | Run UI project (expects generated files) |
-| npm run bdd:debug | Run with Playwright inspector |
-| npm run bdd:headed | Run UI tests headed |
-| npm run allure:serve | Serve Allure results locally |
-| npm run install-browsers | Install Playwright browsers |
+## 📊 Reports
 
-### 3. Structure
-```
-features/          # Gherkin feature files
-tests/steps/       # Step definitions (api / ui / fixtures)
-tests/pages/       # Page objects
-playwright.config.ts
-.github/workflows/ # CI pipeline (Allure + history)
-```
+**Live Reports**: https://brand-klout.github.io/automation-testing/
 
-### 4. Environment
-Create `.env` (optional overrides):
-```
-BASE_URL=https://playwright.dev
-API_BASE_URL=https://jsonplaceholder.typicode.com
-```
+- Protected by authentication (managed via GitHub Secrets)
+- Historical trends and detailed execution data
+- Screenshots and videos for failures
 
-### 5. Tags
-| Tag | Purpose |
-|-----|---------|
-| @api | API-only scenarios |
-| @ui | Browser/UI scenarios |
+## 🔧 Development
 
-### 6. Sample Feature
-```gherkin
-Feature: BrandKlout Core Testing
-  @api
-  Scenario: API health
-    When I send a GET request to "/users"
-    Then the response status should be 200
-    And the response should be an array
+1. Clone repository
+2. Install: `npm install && npx playwright install`
+3. Copy: `cp .env.example .env`
+4. Run: `npm run test:bdd`
 
-  @ui
-  Scenario: Homepage availability
-    Given I am on the homepage
-    Then I should see the main navigation menu
-    And I should see the "Get Started" button
-```
+## 🛡️ Security
 
-### 7. Reporting
-- Playwright HTML report (default) on failures / via `npx playwright show-report`
-- Allure report (history persisted in CI) published via GitHub Pages / artifacts
-- Local view: `npm run allure:serve`
+Access codes managed via GitHub Secrets (`ACCESS_CODE`). Contact administrators for access.
 
-### 8. Generated / Ignored
-```
-allure-results/
-.features-gen/
-playwright-report/
-test-results/
-```
+## 📚 Documentation
 
-### 9. Test Reports & Authentication
-
-#### Live Test Reports
-- **URL**: https://brand-klout.github.io/automation-testing/
-- **Authentication**: Required for security
-- **Access Codes**: Contact QA team for current access codes
-
-#### Authentication System
-- **Login Page**: Secure access with session management
-- **Session Duration**: 4 hours with automatic extension
-- **Features**: Logout button, session timer, security protection
-- **Configuration**: See `auth/README.md` for management details
-
-#### Report Features
-- **Real-time Results**: Automatically updated after each CI run
-- **Historical Trends**: Track test performance over time
-- **Allure Integration**: Rich reporting with screenshots and traces
-- **Archive Access**: Previous test run results preserved
-
-### 10. Good Practices
-- Independent, idempotent scenarios
-- Stable selectors (data-testid / role)
-- Avoid `waitForTimeout`; rely on auto-wait + assertions
-- Keep step bodies thin; delegate detail to page objects / helpers
-
-### 11. Troubleshooting
-| Issue | Tip |
-|-------|-----|
-| Missing steps | Run `npm run bdd:gen` again |
-| Browsers missing | `npx playwright install` or `npm run install-browsers` |
-| API failures | Check `API_BASE_URL` value |
-| Flaky test | Review trace / Allure history, add proper waits |
-| Report access denied | Check `auth/README.md` for current access codes |
-| Session expired | Re-authenticate with valid access code |
-
-### 12. License
-Internal proprietary test assets (UNLICENSED / not for external distribution).
-
----
-BrandKlout Automation Testing • Internal QA Support Suite
-```
-
-
-
-## 🏗️ Architecture & Testing Strategy
-
-
+- [Authentication System](./auth/README.md) - Access control and configuration
+- [Playwright Config](./playwright.config.ts) - Test configuration
+- [GitHub Actions](./.github/workflows/playwright.yml) - CI/CD pipeline
