@@ -83,8 +83,8 @@ jobs:
         env:
           ACCESS_CODE: ${{ secrets.ACCESS_CODE || 'BK@123' }}
         run: |
-          chmod +x scripts/deploy.sh
-          ./scripts/deploy.sh
+          chmod +x auth/deploy.sh
+          ./auth/deploy.sh
 
       - name: Create history archive
         run: |

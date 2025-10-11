@@ -35,6 +35,7 @@ If locked out:
 auth/
 ├── auth.html          # Login page
 ├── auth-guard.js      # Session management
+├── deploy.sh          # Deployment script
 └── templates/         # Page templates
     ├── index.html     # Main redirect page
     └── dashboard.html # Dashboard template
@@ -48,7 +49,7 @@ const SESSION_DURATION = 4 * 60 * 60 * 1000; // 4 hours
 ```
 
 **Deployment Integration**:
-Access codes are automatically injected during CI/CD deployment via `scripts/deploy.sh`.
+Access codes are automatically injected during CI/CD deployment via `auth/deploy.sh`.
 
 ## 🔧 Development
 
