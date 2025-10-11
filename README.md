@@ -1,6 +1,6 @@
 # BrandKlout Automation Testing
 
-[![CI](https://github.com/brand-klout/automation-testing/actions/workflows/playwright.yml/badge.svg)](https://github.com/brand-klout/automation-testing/actions/workflows/playwright.yml) [![Test Reports](https://img.shields.io/badge/Test-Reports-success?logo=github)](https://brand-klout.github.io/automation-testing/)
+[![CI](https://github.com/brand-klout/automation/actions/workflows/playwright.yml/badge.svg)](https://github.com/brand-klout/automation/actions/workflows/playwright.yml) [![Test Reports](https://img.shields.io/badge/Test-Reports-success?logo=github)](https://brand-klout.github.io/automation/)
 
 Automated end-to-end testing suite using Playwright and BDD for BrandKlout applications.
 
@@ -40,7 +40,7 @@ tests/
 
 ## 📊 Reports
 
-**Live Reports**: https://brand-klout.github.io/automation-testing/
+**Live Reports**: https://brand-klout.github.io/automation/
 
 - Protected by authentication (managed via GitHub Secrets)
 - Historical trends and detailed execution data

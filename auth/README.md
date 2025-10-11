@@ -12,7 +12,7 @@ Secure access control for BrandKlout test reports using GitHub Secrets and clien
 ## 🔑 Access Management
 
 ### Current Access
-- **Reports URL**: https://brand-klout.github.io/automation-testing/
+- **Reports URL**: https://brand-klout.github.io/automation/
 - **Access Code**: Managed via GitHub repository secrets
 
 ### Setting Access Code

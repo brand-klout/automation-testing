@@ -1,5 +1,5 @@
 {
-  "name": "brandklout-automation-testing",
+  "name": "brandklout-automation",
   "version": "1.0.0",
   "description": "BrandKlout E2E testing automation with Playwright and BDD",
   "scripts": {
